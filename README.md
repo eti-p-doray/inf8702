@@ -1,2 +1,2 @@
 # inf8702
-Deep learning for Image Completion
+Seamless cloning using Poisson image blending.
