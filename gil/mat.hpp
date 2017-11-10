@@ -7,7 +7,8 @@
 #include <memory>
 #include <vector>
 
-#include "image_file.hpp"
+#include "gil/image_file.hpp"
+#include "gil/vec.hpp"
 
 namespace gil {
 
