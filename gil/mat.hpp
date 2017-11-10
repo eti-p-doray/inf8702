@@ -7,7 +7,6 @@
 #include <memory>
 #include <vector>
 
-#include "gil/image_file.hpp"
 #include "gil/vec.hpp"
 
 namespace gil {
@@ -68,19 +67,15 @@ class mat {
       : rows_(size[0]),
         cols_(size[1]),
         data_(size[0] * size[1], value, alloc) {}
-  mat(vec2<size_t> size, size_t stride, const T* data, const Alloc& alloc = Alloc())
+  mat(vec2<size_t> size, size_t pitch, const uint8_t* data, const Alloc& alloc = Alloc())
       : rows_(size[0]),
         cols_(size[1]),
         data_(size[0] * size[1], alloc) {
     auto d_first = data_.begin();
     for (size_t i = 0; i < rows_; ++i) {
-      d_first = std::copy_n(data, cols_, d_first);
-      data += stride;
+      d_first = std::copy_n(reinterpret_cast<const T*>(data), cols_, d_first);
+      data = data + pitch;
     }
-  }
-  mat(const image_file& im, const Alloc& alloc = Alloc())
-      : mat({im.height(), im.width()}, im.stride() * 8 / im.depth(), reinterpret_cast<const T*>(im.data()), alloc) {
-    assert(im.depth() == 8 * sizeof(T));
   }
   template <class U>
   mat(mat_view<U> that, const Alloc& alloc = Alloc())
@@ -92,6 +87,9 @@ class mat {
       d_first = std::copy(that.row_begin(i), that.row_end(i), d_first);
     }
   }
+  template <class U>
+  mat(const mat<U>& that, const Alloc& alloc = Alloc())
+      : mat(gil::mat_cview<U>(that), alloc) {}
   
   mat& operator=(const mat& that) = default;
   mat& operator=(mat&& that) = default;

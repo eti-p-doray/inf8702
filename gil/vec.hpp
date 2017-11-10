@@ -3,6 +3,7 @@
 #include <array>
 #include <algorithm>
 
+#include "acier/algorithm.hpp"
 #include "acier/operators.hpp"
 #include "acier/type_traits.hpp"
 
@@ -159,6 +160,11 @@ vec<T, N>& operator/=(vec<T, N>& a, const U& b) {
   using namespace std::placeholders;
   gil::for_each(a, std::bind(acier::divides_assign(), _1, b));
   return a;
+}
+
+template <class T, class U, size_t N>
+vec<T, N> saturate_cast(const vec<U, N>& x) {
+  return apply(x, [](const U& v){ return saturate<T>(v); });
 }
 
 template <class T> using vec2 = vec<T, 2>;
