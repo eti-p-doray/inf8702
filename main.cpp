@@ -27,6 +27,8 @@ int main() {
     g.swap(f);
   }
   auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> diff = end-start;
+  std::cout << diff.count() << std::endl;
 
   copy(f, mask, dst);
   gil::image_file result(dst);
