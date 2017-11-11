@@ -73,7 +73,7 @@ enum class channel_order {
   kRA = CL_RA,
   kRGB = CL_RGB,
   kRGBx = CL_RGBx,
-  kRGBAx = CL_RGBA,
+  kRGBA = CL_RGBA,
   kARGB = CL_ARGB,
   kBGRA = CL_BGRA
 };

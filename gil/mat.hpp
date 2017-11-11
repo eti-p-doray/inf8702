@@ -7,9 +7,26 @@
 #include <memory>
 #include <vector>
 
+#include <opencv2/core/mat.hpp>
+
+#include "acier/compressed_member.hpp"
 #include "gil/vec.hpp"
 
 namespace gil {
+
+template <class T>
+struct cv_channel {};
+
+template <>
+struct cv_channel<uint8_t> { static constexpr int value = CV_8U; };
+template <>
+struct cv_channel<gil::vec3b> { static constexpr int value = CV_8UC3; };
+template <>
+struct cv_channel<gil::vec4b> { static constexpr int value = CV_8UC4; };
+template <>
+struct cv_channel<gil::vec3f> { static constexpr int value = CV_32FC3; };
+template <>
+struct cv_channel<gil::vec4f> { static constexpr int value = CV_32FC4; };
 
 template <class T>
 class mat_view {
@@ -17,6 +34,14 @@ class mat_view {
   using row_iterator = T*;
   using row_const_iterator = std::add_const_t<T>*;
 
+  mat_view(cv::Mat that)
+      : rows_(that.rows),
+        cols_(that.cols),
+        stride_(that.step1() / that.channels()),
+        data_(that.ptr<T>(0)) {
+    std::cout << that.type() << " " << cv_channel<T>::value<< std::endl;
+    assert(that.type() == cv_channel<T>::value);
+  }
   mat_view(vec2<size_t> size, size_t stride, T* data)
       : rows_(size[0]),
         cols_(size[1]),
@@ -41,6 +66,11 @@ class mat_view {
   mat_view& operator=(const T& value) {
     apply(std::bind(acier::identity(), value));
     return *this;
+  }
+  
+  operator cv::Mat() const {
+    return cv::Mat(int(rows()), int(cols()), cv_channel<T>::value,
+                   reinterpret_cast<void*>(data()), pitch());
   }
   
   vec2<size_t> size() const { return {rows(), cols()}; }
@@ -72,47 +102,74 @@ class mat_view {
     std::swap(stride_, other.stride_);
     std::swap(data_, other.data_);
   }
+  
+  explicit operator bool() const { return data_ != nullptr; }
+  
+  friend bool operator == (const mat_view& m, std::nullptr_t) { return !bool(m); }
+  friend bool operator == (std::nullptr_t, const mat_view& m) { return !bool(m); }
+  friend bool operator != (const mat_view& m, std::nullptr_t) { return bool(m); }
+  friend bool operator != (std::nullptr_t, const mat_view& m) { return bool(m); }
 
- private:
-  size_t rows_;
-  size_t cols_;
-  size_t stride_;
-  T* data_;
+ protected:
+  void reset() {
+    rows_ = 0;
+    cols_ = 0;
+    stride_ = 0;
+    data_ = nullptr;
+  }
+  
+  size_t rows_ = 0;
+  size_t cols_ = 0;
+  size_t stride_ = 0;
+  T* data_ = nullptr;
 };
 
 template <class T>
 using mat_cview = mat_view<const T>;
 
+constexpr struct retain_t {} retain {};
+
 template <class T, class Alloc = std::allocator<T>>
-class mat {
+class mat : public mat_view<T>,
+            private acier::compressed_member<Alloc> {
  public:
-  using row_iterator = typename std::vector<T, Alloc>::iterator;
-  using row_const_iterator = typename std::vector<T, Alloc>::const_iterator;
+  using row_iterator = typename mat_view<T>::row_iterator;
+  using row_const_iterator = typename mat_view<T>::row_const_iterator;
 
   mat() = default;
-  mat(const mat& that) = default;
-  mat(mat&& that) = default;
+  mat(const mat& that);
+  mat(mat&& that)
+      : mat_view<T>(that),
+        acier::compressed_member<Alloc>(std::move(that.get_alloc())) {
+    that.mat_view<T>::reset();
+  }
+  explicit mat(const mat_view<T>& that, retain_t, const Alloc& alloc = Alloc())
+      : mat_view<T>(that),
+        acier::compressed_member<Alloc>(alloc) {}
   mat(vec2<size_t> size, const T& value = T(), const Alloc& alloc = Alloc())
-      : rows_(size[0]),
-        cols_(size[1]),
-        data_(size[0] * size[1], value, alloc) {}
-  mat(vec2<size_t> size, size_t pitch, const uint8_t* data, const Alloc& alloc = Alloc())
-      : rows_(size[0]),
-        cols_(size[1]),
-        data_(size[0] * size[1], alloc) {
-    auto d_first = data_.begin();
-    for (size_t i = 0; i < rows_; ++i) {
-      d_first = std::copy_n(reinterpret_cast<const T*>(data), cols_, d_first);
+      : mat_view<T>(size, size[1], nullptr) {
+    this->data_ = std::allocator_traits<Alloc>::allocate(get_alloc(), size[0] * size[1]);
+    std::fill(this->data(), this->data() + this->total(), value);
+  }
+  template <class U>
+  mat(vec2<size_t> size, size_t pitch, const U* data, const Alloc& alloc = Alloc())
+      : mat_view<T>(size, size[1], nullptr),
+        acier::compressed_member<Alloc>(alloc) {
+    this->data_ = std::allocator_traits<Alloc>::allocate(get_alloc(), size[0] * size[1]);
+    auto d_first = this->data();
+    auto ptr = reinterpret_cast<const uint8_t*>(data);
+    for (size_t i = 0; i < this->rows(); ++i) {
+      d_first = std::copy_n(reinterpret_cast<const U*>(ptr), this->cols(), d_first);
       data = data + pitch;
     }
   }
   template <class U>
   mat(mat_view<U> that, const Alloc& alloc = Alloc())
-      : rows_(that.rows()),
-        cols_(that.cols()),
-        data_(that.rows() * that.cols(), alloc) {
-    auto d_first = data_.begin();
-    for (size_t i = 0; i < rows(); ++i) {
+      : mat_view<T>(that.size(), that.cols(), nullptr),
+        acier::compressed_member<Alloc>(alloc) {
+    this->data_ = std::allocator_traits<Alloc>::allocate(get_alloc(), this->total());
+    auto d_first = this->data();
+    for (size_t i = 0; i < this->rows(); ++i) {
       d_first = std::copy(that.row_begin(i), that.row_end(i), d_first);
     }
   }
@@ -120,64 +177,43 @@ class mat {
   mat(const mat<U>& that, const Alloc& alloc = Alloc())
       : mat(gil::mat_cview<U>(that), alloc) {}
   
-  mat& operator=(const mat& that) = default;
-  mat& operator=(mat&& that) = default;
+  mat& operator=(const mat& that);
+  mat& operator=(mat&& that) {
+    mat_view<T>::operator=(that);
+    that.reset();
+  }
+  
+  ~mat() {
+    destroy();
+  }
   
   mat& operator=(const T& value) {
     apply(std::bind(acier::identity(), value));
     return *this;
   }
   
-  operator mat_view<const T>() const {
-    return {{rows(), cols()}, cols(), data()};
-  }
-  operator mat_view<T>() {
-    return {{rows(), cols()}, cols(), data()};
-  }
-  
-  vec2<size_t> size() const { return {rows(), cols()}; }
-  size_t rows() const { return rows_; }
-  size_t cols() const { return cols_; }
-  size_t total() const { return rows_ * cols_; }
-  size_t stride() const { return cols_; }
-  size_t pitch() const { return stride() * sizeof(T); }
-  
-  mat_view<T> operator[](const vec4<size_t>& r) {
-    return {{r[2], r[3]}, stride(), data() + r[0] * stride() + r[1]};
-  }
-  mat_view<const T> operator[](const vec4<size_t>& r) const {
-    return {r[2], r[3], stride(), data() + r[0] * stride() + r[1]};
-  }
-
-  row_iterator row_begin(size_t row) { return data_.begin() + cols() * row; }
-  row_iterator row_end(size_t row) { return data_.begin() + cols() * (row+1); }
-  row_const_iterator row_begin(size_t row) const { return data_.begin() + cols() * row; }
-  row_const_iterator row_end(size_t row) const { return data_.begin() + cols() * (row+1); }
-  row_const_iterator row_cbegin(size_t row) const { return row_cbegin(row); }
-  row_const_iterator row_cend(size_t row) const { return row_cend(row); }
-  
-  const T* data() const { return data_.data(); }
-  T* data() { return data_.data(); }
-  
-  template <class F>
-  mat& apply(const F& fcn) {
-    using namespace std::placeholders;
-    for (size_t i = 0; i < rows(); ++i) {
-      std::for_each(row_begin(i), row_end(i), std::bind(acier::assign(), _1, std::bind(fcn, _1)));
-    }
-    return *this;
-  }
+  row_iterator row_begin(size_t row) { return this->data() + this->stride() * row; }
+  row_iterator row_end(size_t row) { return this->data() + this->stride() * row + this->cols(); }
+  row_const_iterator row_begin(size_t row) const { return this->data() + this->stride() * row; }
+  row_const_iterator row_end(size_t row) const { return this->data() + this->stride() * row + this->cols(); }
   
   void swap(mat& other) {
-    std::swap(rows_, other.rows_);
-    std::swap(cols_, other.cols_);
-    std::swap(data_, other.data_);
+    mat_view<T>::swap(other);
+    std::swap(get_alloc(), other.get_alloc());
+  }
+  
+  void reset() {
+    if (*this == nullptr) return;
+    destroy();
+    mat_view<T>::reset();
   }
 
  private:
-  size_t rows_;
-  size_t cols_;
-  std::vector<T, Alloc> data_;
+  void destroy() {
+    std::allocator_traits<Alloc>::deallocate(get_alloc(), this->data(), this->total());
+  }
+  
+  Alloc& get_alloc() { return acier::compressed_member<Alloc>::get(); }
 };
 
 template <class T, class U, class F>

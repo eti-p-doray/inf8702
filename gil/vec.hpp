@@ -18,9 +18,22 @@ class vec : public std::array<T, N> {
     std::copy(init.begin(), init.end(), this->begin());
   }
   vec(const std::array<T, N>& that) : std::array<T, N>(that) {}
+  template <class U, size_t N2>
+  vec(const std::array<U, N2>& that) {
+    auto d_first = std::copy_n(that.begin(), std::min(N, N2), this->begin());
+    std::fill(d_first, this->end(), T{});
+  }
+  
+  template <class U, size_t N2>
+  vec& operator=(const std::array<U, N2>& that) {
+    auto d_first = std::copy_n(that.begin(), std::min(N, N2), this->begin());
+    std::fill(d_first, this->end(), T{});
+    return *this;
+  }
+  
   template <class U>
-  vec(const std::array<U, N>& that) {
-    std::copy(that.begin(), that.end(), this->begin());
+  operator U() const {
+    return (*this)[0];
   }
 };
 
@@ -167,9 +180,20 @@ vec<T, N> saturate_cast(const vec<U, N>& x) {
   return apply(x, [](const U& v){ return acier::saturate<T>(v); });
 }
 
+template <class T> using vec1 = vec<T, 1>;
 template <class T> using vec2 = vec<T, 2>;
 template <class T> using vec3 = vec<T, 3>;
 template <class T> using vec4 = vec<T, 4>;
+
+using vec1b = vec1<uint8_t>;
+using vec1i = vec1<int>;
+using vec1ui = vec1<unsigned>;
+using vec1f = vec1<float>;
+
+using vec2b = vec2<uint8_t>;
+using vec2i = vec2<int>;
+using vec2ui = vec2<unsigned>;
+using vec2f = vec2<float>;
 
 using vec3b = vec3<uint8_t>;
 using vec3i = vec3<int>;
