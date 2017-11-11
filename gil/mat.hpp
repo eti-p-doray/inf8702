@@ -22,6 +22,13 @@ class mat_view {
         cols_(size[1]),
         stride_(stride),
         data_(data) {}
+  mat_view(const mat_view& that) = default;
+  template <class U>
+  mat_view(const mat_view<U>& that)
+      : rows_(that.rows()),
+        cols_(that.cols()),
+        stride_(that.stride()),
+        data_(that.data()) {}
   
   template <class U>
   mat_view& operator=(mat_view<U> that) {
@@ -31,18 +38,40 @@ class mat_view {
     }
     return *this;
   }
+  mat_view& operator=(const T& value) {
+    apply(std::bind(acier::identity(), value));
+    return *this;
+  }
   
   vec2<size_t> size() const { return {rows(), cols()}; }
   size_t rows() const { return rows_; }
   size_t cols() const { return cols_; }
+  size_t total() const { return rows_ * cols_; }
   size_t stride() const { return stride_; }
+  size_t pitch() const { return stride() * sizeof(T); }
 
   row_iterator row_begin(size_t row) const { return data_ + stride_ * row; }
   row_iterator row_end(size_t row) const { return data_ + stride_ * row + cols_; }
   row_const_iterator row_cbegin(size_t row) const { return data_ + stride_ * row; }
   row_const_iterator row_cend(size_t row) const { return data_ + stride_ * row + cols_; }
   
-  T* data() { return data_; }
+  T* data() const { return data_; }
+  
+  template <class F>
+  mat_view& apply(const F& fcn) {
+    using namespace std::placeholders;
+    for (size_t i = 0; i < rows(); ++i) {
+      std::for_each(row_begin(i), row_end(i), std::bind(acier::assign(), _1, std::bind(fcn, _1)));
+    }
+    return *this;
+  }
+  
+  void swap(mat_view& other) {
+    std::swap(rows_, other.rows_);
+    std::swap(cols_, other.cols_);
+    std::swap(stride_, other.stride_);
+    std::swap(data_, other.data_);
+  }
 
  private:
   size_t rows_;
@@ -109,7 +138,9 @@ class mat {
   vec2<size_t> size() const { return {rows(), cols()}; }
   size_t rows() const { return rows_; }
   size_t cols() const { return cols_; }
+  size_t total() const { return rows_ * cols_; }
   size_t stride() const { return cols_; }
+  size_t pitch() const { return stride() * sizeof(T); }
   
   mat_view<T> operator[](const vec4<size_t>& r) {
     return {{r[2], r[3]}, stride(), data() + r[0] * stride() + r[1]};

@@ -164,7 +164,7 @@ vec<T, N>& operator/=(vec<T, N>& a, const U& b) {
 
 template <class T, class U, size_t N>
 vec<T, N> saturate_cast(const vec<U, N>& x) {
-  return apply(x, [](const U& v){ return saturate<T>(v); });
+  return apply(x, [](const U& v){ return acier::saturate<T>(v); });
 }
 
 template <class T> using vec2 = vec<T, 2>;
@@ -173,6 +173,12 @@ template <class T> using vec4 = vec<T, 4>;
 
 using vec3b = vec3<uint8_t>;
 using vec3i = vec3<int>;
+using vec3ui = vec3<unsigned>;
 using vec3f = vec3<float>;
+
+using vec4b = vec4<uint8_t>;
+using vec4i = vec4<int>;
+using vec4ui = vec4<unsigned>;
+using vec4f = vec4<float>;
 
 }

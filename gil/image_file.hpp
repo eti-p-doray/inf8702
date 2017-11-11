@@ -55,13 +55,37 @@ public:
 
   // Construit un objet image_file a partir du nom de fichier.
   image_file() = default;
-  image_file( const std::string& filename, Depth depth = k24Bits );
+  image_file(const std::string& filename);
+  image_file(gil::vec2<size_t> size, size_t depth,
+             unsigned red_mask = 0,
+             unsigned green_mask = 0,
+             unsigned blue_mask = 0) {
+    data_ = FreeImage_Allocate(int(size[1]), int(size[0]), int(depth),
+      red_mask, green_mask, blue_mask);
+    if ( data_ == nullptr )
+      throw std::domain_error("Allocation failed");
+  }
   image_file(gil::vec2<size_t> size, size_t pitch, const uint8_t* data);
-  image_file(mat_cview<gil::vec3b> that) {
-    data_ = FreeImage_AllocateT(FIT_BITMAP, int(that.cols()), int(that.rows()), 24, 0xff0000, 0x00ff00, 0x0000ff);
+  template <class T>
+  image_file(mat_cview<T> that,
+             unsigned red_mask = 0,
+             unsigned green_mask = 0,
+             unsigned blue_mask = 0) {
+    data_ = FreeImage_Allocate(int(that.cols()), int(that.rows()), sizeof(T),
+      red_mask, green_mask, blue_mask);
     uint8_t* d_first = data();
     for (size_t i = 0; i < that.rows(); ++i) {
       std::copy_n(that.row_cbegin(i), that.cols(), reinterpret_cast<gil::vec3b*>(d_first));
+      d_first += pitch();
+    }
+  }
+  image_file(mat_cview<gil::vec4b> that) {
+    data_ = FreeImage_AllocateT(FIT_BITMAP, int(that.cols()), int(that.rows()), 32, 0xff0000, 0x00ff00, 0x0000ff);
+    if ( data_ == nullptr )
+      throw std::domain_error("Allocation failed");
+    uint8_t* d_first = data();
+    for (size_t i = 0; i < that.rows(); ++i) {
+      std::copy_n(that.row_cbegin(i), that.cols(), reinterpret_cast<gil::vec4b*>(d_first));
       d_first += pitch();
     }
   }
@@ -78,6 +102,8 @@ public:
     assert(depth() == 8 * sizeof(T));
     return {{height(), width()}, pitch(), reinterpret_cast<const uint8_t*>(data())};
   }
+  
+  image_file convert(Depth depth = k24Bits) const;
   
   bool save(const std::string& filename, Format format, int flags = 0) const;
 
@@ -107,10 +133,10 @@ public:
   }
 
 private:
-  FIBITMAP* data_; // Objet image sous forme de BitMap FreeImage.
+  FIBITMAP* data_ = nullptr; // Objet image sous forme de BitMap FreeImage.
 };
 
-image_file::image_file( const std::string& name, Depth depth ) {
+image_file::image_file(const std::string& name) {
   // check the file signature and deduce its format
   // (the second argument is currently not used by FreeImage)
   FREE_IMAGE_FORMAT format = FreeImage_GetFileType( name.c_str(), 0 );
@@ -120,44 +146,48 @@ image_file::image_file( const std::string& name, Depth depth ) {
     // try to guess the file format from the file extension
     format = FreeImage_GetFIFFromFilename( name.c_str() );
     if ( format == FIF_UNKNOWN ) {
-      throw std::domain_error( "Format du fichier image \"" + name + "\" non supporte" );
+      throw std::domain_error( "Unsupported file format" );
     }
   }
   // ok, let's load the file
-  FIBITMAP* dib = FreeImage_Load( format, name.c_str(), 0 );
-  if ( dib == 0 ) {
-    throw std::domain_error( "Erreur a la lecture du fichier \"" + name + "\"" );
+  data_ = FreeImage_Load( format, name.c_str(), 0 );
+  if ( data_ == 0 ) {
+    throw std::domain_error( "Error reading file \"" + name + "\"" );
   }
+}
 
+image_file::image_file(image_file&& that) {
+  std::swap(data_, that.data_);
+}
+
+image_file image_file::convert(Depth depth) const {
+  image_file that;
   switch (depth) {
     case k4Bits:
-      data_ = FreeImage_ConvertTo4Bits( dib );
+      that.data_ = FreeImage_ConvertTo4Bits( data_ );
       break;
     case k8Bits:
-      data_ = FreeImage_ConvertTo8Bits( dib );
+      that.data_ = FreeImage_ConvertTo8Bits( data_ );
       break;
     case kGreyScale:
-      data_ = FreeImage_ConvertToGreyscale( dib );
+      that.data_ = FreeImage_ConvertToGreyscale( data_ );
       break;
     case k16Bits555:
-      data_ = FreeImage_ConvertTo16Bits555( dib );
+      that.data_ = FreeImage_ConvertTo16Bits555( data_ );
       break;
     case k16Bits565:
-      data_ = FreeImage_ConvertTo16Bits565( dib );
+      that.data_ = FreeImage_ConvertTo16Bits565( data_ );
       break;
     case k24Bits:
-      data_ = FreeImage_ConvertTo24Bits( dib );
+      that.data_ = FreeImage_ConvertTo24Bits( data_ );
       break;
     case k32Bits:
-      data_ = FreeImage_ConvertTo32Bits( dib );
+      that.data_ = FreeImage_ConvertTo32Bits( data_ );
       break;
     default:
       throw std::domain_error( "Invalid format" );
   }
-  FreeImage_Unload( dib );
-  if ( data_ == nullptr ) {
-    throw std::domain_error( "Incapable de convertir le fichier \"" + name + "\"." );
-  }
+  return that;
 }
 
 bool image_file::save(const std::string& filename, Format format, int flags) const {

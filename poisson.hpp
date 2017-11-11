@@ -163,3 +163,14 @@ void copy(gil::mat_cview<gil::vec3f> src, gil::mat_cview<uint8_t> mask, gil::mat
     }
   }
 }
+
+void poisson_blending(gil::mat_view<gil::vec3f> src, gil::mat_cview<uint8_t> mask, gil::mat_view<gil::vec3f> dst) {
+  gil::mat<gil::vec3f> b = make_guidance(dst, src, mask, make_boundary(mask));
+  apply_mask(mask, gil::mat_view<gil::vec3f>(b));
+  apply_mask(mask, gil::mat_view<gil::vec3f>(dst));
+  src = gil::vec3f();
+  for (int i = 0; i < 200; ++i) {
+    jacobi_iteration(dst, b, mask, src);
+    src.swap(dst);
+  }
+}
