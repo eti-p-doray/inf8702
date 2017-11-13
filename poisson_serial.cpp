@@ -1,11 +1,6 @@
-#pragma
-
-#include <assert.h>
+#include "poisson_serial.hpp"
 
 #include <algorithm>
-
-#include "gil/mat.hpp"
-#include "gil/vec.hpp"
 
 gil::mat<uint8_t> make_boundary(gil::mat_cview<uint8_t> mask) {
   gil::mat<uint8_t> boundary({mask.rows(), mask.cols()});
@@ -27,7 +22,10 @@ gil::mat<uint8_t> make_boundary(gil::mat_cview<uint8_t> mask) {
   return boundary;
 }
 
-gil::mat<gil::vec3f> make_guidance(gil::mat_cview<gil::vec3f> f, gil::mat_cview<gil::vec3f> g, gil::mat_cview<uint8_t> mask, gil::mat_cview<uint8_t> boundary) {
+gil::mat<gil::vec3f> make_guidance(gil::mat_cview<gil::vec3f> f,
+                                   gil::mat_cview<gil::vec3f> g,
+                                   gil::mat_cview<uint8_t> mask,
+                                   gil::mat_cview<uint8_t> boundary) {
   assert(f.size() == mask.size());
   assert(g.size() == mask.size());
   assert(boundary.size() == mask.size());
@@ -55,7 +53,10 @@ gil::mat<gil::vec3f> make_guidance(gil::mat_cview<gil::vec3f> f, gil::mat_cview<
   return dst;
 }
 
-gil::mat<gil::vec3f> make_guidance2(gil::mat_cview<gil::vec3f> f, gil::mat_cview<gil::vec3f> g, gil::mat_cview<uint8_t> mask, gil::mat_cview<uint8_t> boundary) {
+gil::mat<gil::vec3f> make_guidance2(gil::mat_cview<gil::vec3f> f,
+                                    gil::mat_cview<gil::vec3f> g,
+                                    gil::mat_cview<uint8_t> mask,
+                                    gil::mat_cview<uint8_t> boundary) {
   assert(f.size() == mask.size());
   assert(g.size() == mask.size());
   assert(boundary.size() == mask.size());
@@ -87,20 +88,10 @@ gil::mat<gil::vec3f> make_guidance2(gil::mat_cview<gil::vec3f> f, gil::mat_cview
   return dst;
 }
 
-template <class T>
-void apply_mask(gil::mat_cview<uint8_t> mask, gil::mat_view<T> f) {
-  for (int i = 0; i < f.rows(); ++i) {
-    auto f_it = f.row_begin(i);
-    const uint8_t* mask_it = mask.row_begin(i);
-    for (size_t j = 0; j < f.cols(); ++j, ++f_it, ++mask_it) {
-      if (*mask_it < 128) {
-        *f_it = {};
-      }
-    }
-  }
-}
-
-void jacobi_iteration(gil::mat_cview<gil::vec3f> src, gil::mat_cview<gil::vec3f> b, gil::mat_cview<uint8_t> mask, gil::mat_view<gil::vec3f> dst) {
+void jacobi_iteration(gil::mat_cview<gil::vec3f> src,
+                      gil::mat_cview<gil::vec3f> b,
+                      gil::mat_cview<uint8_t> mask,
+                      gil::mat_view<gil::vec3f> dst) {
   assert(src.size() == mask.size());
   assert(b.size() == mask.size());
   assert(dst.size() == mask.size());
@@ -118,7 +109,9 @@ void jacobi_iteration(gil::mat_cview<gil::vec3f> src, gil::mat_cview<gil::vec3f>
   }
 }
 
-void apply_remainder(gil::mat_cview<gil::vec3f> src, gil::mat_cview<uint8_t> mask, gil::mat_view<gil::vec3f> dst) {
+void apply_remainder(gil::mat_cview<gil::vec3f> src,
+                     gil::mat_cview<uint8_t> mask,
+                     gil::mat_view<gil::vec3f> dst) {
   size_t src_step = src.stride();
   for (int i = 1; i < src.rows()-1; ++i) {
     const gil::vec3f* src_it = src.row_cbegin(i)+1;
@@ -132,7 +125,9 @@ void apply_remainder(gil::mat_cview<gil::vec3f> src, gil::mat_cview<uint8_t> mas
   }
 }
 
-void copy(gil::mat_cview<gil::vec3f> src, gil::mat_cview<uint8_t> mask, gil::mat_view<gil::vec3f> dst) {
+void copy(gil::mat_cview<gil::vec3f> src,
+          gil::mat_cview<uint8_t> mask,
+          gil::mat_view<gil::vec3f> dst) {
   assert(src.size() == mask.size());
   assert(dst.size() == mask.size());
   
@@ -148,29 +143,20 @@ void copy(gil::mat_cview<gil::vec3f> src, gil::mat_cview<uint8_t> mask, gil::mat
   }
 }
 
-void copy(gil::mat_cview<gil::vec3f> src, gil::mat_cview<uint8_t> mask, gil::mat_view<gil::vec3b> dst) {
+void copy(gil::mat_cview<gil::vec3f> src,
+          gil::mat_cview<uint8_t> mask,
+          gil::mat_view<gil::vec4f> dst) {
   assert(src.size() == mask.size());
   assert(dst.size() == mask.size());
   
   for (int i = 0; i < mask.rows(); ++i) {
     const uint8_t* mask_it = mask.row_cbegin(i);
     const gil::vec3f* src_it = src.row_cbegin(i);
-    gil::vec3b* dst_it = dst.row_begin(i);
+    gil::vec4f* dst_it = dst.row_begin(i);
     for (size_t j = 0; j < mask.cols(); ++j, ++mask_it, ++src_it, ++dst_it) {
       if (*mask_it >= 128) {
         *dst_it = gil::saturate_cast<uint8_t>(*src_it);
       }
     }
-  }
-}
-
-void poisson_blending(gil::mat_view<gil::vec3f> src, gil::mat_cview<uint8_t> mask, gil::mat_view<gil::vec3f> dst) {
-  gil::mat<gil::vec3f> b = make_guidance(dst, src, mask, make_boundary(mask));
-  apply_mask(mask, gil::mat_view<gil::vec3f>(b));
-  apply_mask(mask, gil::mat_view<gil::vec3f>(dst));
-  src = gil::vec3f();
-  for (int i = 0; i < 200; ++i) {
-    jacobi_iteration(dst, b, mask, src);
-    src.swap(dst);
   }
 }

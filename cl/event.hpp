@@ -54,6 +54,7 @@ class weak_event : public base_wrapper<event_traits> {
 
 struct event : shared_wrapper<weak_event> {
   using shared_wrapper::shared_wrapper;
+  using shared_wrapper::operator=;
   event() = default;
   event(weak_context ctx);
 };

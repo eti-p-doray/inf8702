@@ -39,7 +39,6 @@ class mat_view {
         cols_(that.cols),
         stride_(that.step1() / that.channels()),
         data_(that.ptr<T>(0)) {
-    std::cout << that.type() << " " << cv_channel<T>::value<< std::endl;
     assert(that.type() == cv_channel<T>::value);
   }
   mat_view(vec2<size_t> size, size_t stride, T* data)
@@ -188,7 +187,7 @@ class mat : public mat_view<T>,
   }
   
   mat& operator=(const T& value) {
-    apply(std::bind(acier::identity(), value));
+    this->apply(std::bind(acier::identity(), value));
     return *this;
   }
   
