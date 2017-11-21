@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		8F1B50BB1FB65CC400111750 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F1B50BA1FB65CC400111750 /* OpenCL.framework */; };
-		8F7719661FB22FEC007D9B74 /* libfreeimage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F7719651FB22FEC007D9B74 /* libfreeimage.a */; };
 		8F90C7451FC4744D005CD387 /* command_queue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F90C73F1FC4744D005CD387 /* command_queue.cpp */; };
 		8F90C7461FC4744D005CD387 /* event.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F90C7401FC4744D005CD387 /* event.cpp */; };
 		8F90C7471FC4744D005CD387 /* kernel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F90C7411FC4744D005CD387 /* kernel.cpp */; };
@@ -17,13 +16,11 @@
 		8F90C74A1FC4744D005CD387 /* program.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F90C7441FC4744D005CD387 /* program.cpp */; };
 		8F90C74D1FC4745C005CD387 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F90C74B1FC4745C005CD387 /* main.cpp */; };
 		8F90C74E1FC4745C005CD387 /* poisson_serial.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F90C74C1FC4745C005CD387 /* poisson_serial.cpp */; };
+		8F90C74F1FC49113005CD387 /* libopencv_imgcodecs.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FD5DF261FAF5F2C0006921E /* libopencv_imgcodecs.3.3.1.dylib */; };
 		8FAF6D101FB7417E00E97D6B /* libboost_filesystem.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FAF6D0F1FB7417E00E97D6B /* libboost_filesystem.a */; };
 		8FAF6D141FB741B700E97D6B /* libboost_system.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FAF6D131FB741B700E97D6B /* libboost_system.a */; };
 		8FAF6D161FB743BB00E97D6B /* libboost_iostreams.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FAF6D151FB743BB00E97D6B /* libboost_iostreams.a */; };
 		8FD5DF271FAF5F2C0006921E /* libopencv_core.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FD5DF241FAF5F2C0006921E /* libopencv_core.3.3.1.dylib */; };
-		8FD5DF281FAF5F2C0006921E /* libopencv_highgui.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FD5DF251FAF5F2C0006921E /* libopencv_highgui.3.3.1.dylib */; };
-		8FD5DF291FAF5F2C0006921E /* libopencv_imgcodecs.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FD5DF261FAF5F2C0006921E /* libopencv_imgcodecs.3.3.1.dylib */; };
-		8FD5DF2B1FAF62E00006921E /* libopencv_imgproc.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FD5DF2A1FAF62E00006921E /* libopencv_imgproc.3.3.1.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -68,15 +65,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8F90C74F1FC49113005CD387 /* libopencv_imgcodecs.3.3.1.dylib in Frameworks */,
 				8FAF6D161FB743BB00E97D6B /* libboost_iostreams.a in Frameworks */,
 				8FAF6D141FB741B700E97D6B /* libboost_system.a in Frameworks */,
 				8FAF6D101FB7417E00E97D6B /* libboost_filesystem.a in Frameworks */,
 				8F1B50BB1FB65CC400111750 /* OpenCL.framework in Frameworks */,
-				8F7719661FB22FEC007D9B74 /* libfreeimage.a in Frameworks */,
-				8FD5DF2B1FAF62E00006921E /* libopencv_imgproc.3.3.1.dylib in Frameworks */,
 				8FD5DF271FAF5F2C0006921E /* libopencv_core.3.3.1.dylib in Frameworks */,
-				8FD5DF281FAF5F2C0006921E /* libopencv_highgui.3.3.1.dylib in Frameworks */,
-				8FD5DF291FAF5F2C0006921E /* libopencv_imgcodecs.3.3.1.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -302,7 +296,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/usr/local/Cellar/opencv/3.3.1_1/lib,
-					/usr/local/Cellar/freeimage/3.16.0/lib,
 					/usr/local/Cellar/boost/1.65.1/lib,
 				);
 				OTHER_CFLAGS = "-Wno-c++11-narrowing";
@@ -320,7 +313,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/usr/local/Cellar/opencv/3.3.1_1/lib,
-					/usr/local/Cellar/freeimage/3.16.0/lib,
 					/usr/local/Cellar/boost/1.65.1/lib,
 				);
 				OTHER_CFLAGS = "-Wno-c++11-narrowing";
