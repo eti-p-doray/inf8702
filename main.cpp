@@ -129,9 +129,11 @@ class poisson_blending_cl {
     }
     
     result = dst;
+    gil::mat<gil::vec3f> tmp(dst.size());
     cl::read_image(cl_f,
-      {0, 0, 0}, {result.cols(), result.rows(), 1}, result.pitch(),
-      reinterpret_cast<uint8_t*>(result.data()))(ctx_.default_queue(), {e1}).wait();
+      {0, 0, 0}, {tmp.cols(), tmp.rows(), 1}, tmp.pitch(),
+      reinterpret_cast<uint8_t*>(tmp.data()))(ctx_.default_queue(), {e1}).wait();
+    copy(tmp, mask, result);
   }
   
  private:
