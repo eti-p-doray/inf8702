@@ -97,7 +97,13 @@ enum class channel_type {
 };
 
 enum class mem_object_type {
-
+  kBuffer = CL_MEM_OBJECT_BUFFER,
+  kImage2d = CL_MEM_OBJECT_IMAGE2D,
+  kImage3d = CL_MEM_OBJECT_IMAGE3D,
+  kImage2dArray = CL_MEM_OBJECT_IMAGE2D_ARRAY,
+  kImage1d = CL_MEM_OBJECT_IMAGE1D,
+  kImage1dArray = CL_MEM_OBJECT_IMAGE1D_ARRAY,
+  kImage1dBuffer = CL_MEM_OBJECT_IMAGE1D_BUFFER,
 };
 
 struct image_format : cl_image_format {
@@ -106,9 +112,23 @@ struct image_format : cl_image_format {
                         static_cast<cl_channel_type>(type)} {}
 };
 
-using image_desc = cl_image_desc;
-  //image_desc(mem_object_type image_type, size_t width, size_t height, size_t depth, )
-//};
+struct image_desc : cl_image_desc {
+  static image_desc make_image_2d(size_t width, size_t height) {
+    return image_desc(mem_object_type::kImage2d, width, height);
+  }
+
+  image_desc(mem_object_type image_type,
+             size_t width, size_t height,
+             size_t depth = 0,
+             size_t array_size = 1,
+             size_t row_pitch = 0,
+             size_t slice_pitch = 0,
+             weak_memory mem_object = nullptr)
+      : cl_image_desc{static_cast<cl_mem_object_type>(image_type),
+                      width, height, depth, array_size,
+                      row_pitch, slice_pitch, 0, 0,
+                      mem_object.get()} {}
+};
 
 struct image : shared_wrapper<weak_image> {
   using shared_wrapper::shared_wrapper;
