@@ -78,6 +78,10 @@ class mat_view {
   size_t total() const { return rows_ * cols_; }
   size_t stride() const { return stride_; }
   size_t pitch() const { return stride() * sizeof(T); }
+  
+  mat_view operator[](gil::vec4<size_t> frame) const {
+    return {{frame[2], frame[3]}, stride(), row_begin(frame[0]) + frame[1]};
+  }
 
   row_iterator row_begin(size_t row) const { return data_ + stride_ * row; }
   row_iterator row_end(size_t row) const { return data_ + stride_ * row + cols_; }
@@ -136,7 +140,12 @@ class mat : public mat_view<T>,
   using row_const_iterator = typename mat_view<T>::row_const_iterator;
 
   mat() = default;
-  mat(const mat& that);
+  mat(const mat& that)
+      : mat(that.size()) {
+    for (size_t i = 0; i < this->rows(); ++i) {
+      std::copy(that.row_cbegin(i), that.row_cend(i), this->row_begin(i));
+    }
+  }
   mat(mat&& that)
       : mat_view<T>(that),
         acier::compressed_member<Alloc>(std::move(that.get_alloc())) {

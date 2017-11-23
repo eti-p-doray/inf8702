@@ -4,7 +4,8 @@
 
 gil::mat<uint8_t> make_boundary(gil::mat_cview<uint8_t> mask) {
   gil::mat<uint8_t> boundary({mask.rows(), mask.cols()});
-  size_t step = mask.stride();
+  size_t mask_step = mask.stride();
+  size_t bound_step = boundary.stride();
   for (int i = 0; i < mask.rows()-1; ++i) {
     auto mask_it = mask.row_cbegin(i);
     auto bound_it = boundary.row_begin(i);
@@ -13,10 +14,10 @@ gil::mat<uint8_t> make_boundary(gil::mat_cview<uint8_t> mask) {
         *bound_it = 255;
       if (*mask_it >= 128 && mask_it[1] < 128)
         bound_it[1] = 255;
-      if (*mask_it < 128 && mask_it[step] >= 128)
+      if (*mask_it < 128 && mask_it[mask_step] >= 128)
         *bound_it = 255;
-      if (*mask_it >= 128 && mask_it[step] < 128)
-        bound_it[step] = 255;
+      if (*mask_it >= 128 && mask_it[mask_step] < 128)
+        bound_it[bound_step] = 255;
     }
   }
   return boundary;

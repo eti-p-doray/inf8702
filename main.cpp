@@ -24,6 +24,30 @@ boost::filesystem::path find_file(const std::string& filename) {
   return path;
 }
 
+gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
+  gil::vec4<size_t> frame = {-1, -1, 0, 0};
+  for (size_t i = 0; i < mask.rows(); ++i) {
+    auto elem_it = mask.row_begin(i);
+    for (size_t j = 0; j < mask.cols(); ++j, ++elem_it) {
+      if (*elem_it >= 128) {
+        if (i <= frame[0])
+          frame[0] = i - 1;
+        if (j <= frame[1])
+          frame[1] = j - 1;
+        if (i >= frame[2])
+          frame[2] = i + 1;
+        if (j >= frame[3])
+          frame[3] = j + 1;
+      }
+    }
+  }
+  frame[0] -= 1;
+  frame[1] -= 1;
+  frame[2] -= frame[0] - 2;
+  frame[3] -= frame[1] - 2;
+  return frame;
+}
+
 void poisson_blending_serial(gil::mat_cview<uint8_t> mask,
                       gil::mat_cview<gil::vec3f> src,
                       gil::mat_cview<gil::vec3f> dst,
@@ -154,19 +178,20 @@ int main() {
       cv::imread("src.jpg", CV_LOAD_IMAGE_COLOR)));
   gil::mat<gil::vec3f> dst(gil::mat_view<gil::vec3b>(
       cv::imread("dst.jpg", CV_LOAD_IMAGE_COLOR)));
-  gil::mat<gil::vec3f> result(dst.size());
-  
-  poisson_blending_cl poisson_blending_cl;
+  gil::mat<gil::vec3f> result = dst;
+  auto frame = find_frame(mask);
   
   auto start = std::chrono::high_resolution_clock::now();
-  poisson_blending_serial(mask, src, dst, result);
+  poisson_blending_serial(mask[frame], src[frame], dst[frame], result[frame]);
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> diff = end-start;
   std::cout << diff.count() << std::endl;
   cv::imwrite("result1.jpg", cv::Mat(result));
   
+  poisson_blending_cl poisson_blending_cl;
+  
   start = std::chrono::high_resolution_clock::now();
-  poisson_blending_cl(mask, src, dst, result);
+  poisson_blending_cl(mask[frame], src[frame], dst[frame], result[frame]);
   end = std::chrono::high_resolution_clock::now();
   diff = end-start;
   std::cout << diff.count() << std::endl;
