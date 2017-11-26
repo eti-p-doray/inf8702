@@ -218,7 +218,7 @@ class MaskMaker(object):
 
     #Switch view to show the source image with a transparent mask on it
     def see_src(self):
-        if self.resized_src is None:
+        if self.resized_src is None or self.mask is None:
             return
         self.viewed_src = Image.blend(self.resized_src, self.mask, self.mask_opacity)
         self.src_tk = ImageTk.PhotoImage(self.viewed_src)
@@ -233,10 +233,10 @@ class MaskMaker(object):
 
     #Switch view to show the destination image with a transparent inverse mask on it
     def see_dst(self):
-        if self.dst is None:
+        if self.dst is None or self.mask is None:
             return
-        # TODO Fill and use self.viewed_dst
-        self.dst_tk = ImageTk.PhotoImage(self.dst)
+        self.viewed_dst = Image.blend(self.dst, self.mask, self.mask_opacity)
+        self.dst_tk = ImageTk.PhotoImage(self.viewed_dst)
         self.image_label.configure(image=self.dst_tk)
 
     #Refreshes current view with up to date data
