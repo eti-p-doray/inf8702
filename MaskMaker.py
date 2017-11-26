@@ -1,72 +1,292 @@
-from Tkinter import Tk, Menu, Label, Frame
+from Tkinter import *
 from tkFileDialog import askopenfilename, asksaveasfilename
 from PIL import ImageTk, Image, ImageDraw
 
-class MainUI:
+##########################################################
+#Mask making Tkinter program
+##########
+class MaskMaker(object):
     def __init__(self, master):
-        self.brush_size = 10
-        
+        #Initialising the window
         self.master = master
-        self.master.title("MainUI")
+        self.master.title("MaskMaker")
         self.master.bind("<Key>", self.handle_key)
 
+        ##########
+        #Declaring attributes
+        self.mask_draw = None#ImageDraw handle on the mask image
+        self.current_view = None #View state
+        self.dst_extension = None #Extension to be recommended for the mask
+        #Raw images
         self.src = None
+        self.resized_src = None
+        self.mask = None
+        self.dst = None
+        #Shown images
+        self.viewed_src = None
+        self.viewed_dst = None
+        #tkinter versions of images
+        self.src_tk = None
+        self.mask_tk = None
+        self.dst_tk = None
+        #Edition parameters
+        self.brush_size = 10
+        self.mask_opacity = 0.6
 
+
+        ########
+        #initialising the main view
+        self.instructions_label = Label(self.master, text="Please create a session")
+        self.instructions_label.pack()
+        self.image_label = Label(self.master)
+        self.image_label.pack()
+
+
+        #########
+        #Initialising the menu
         self.menu = Menu(self.master)
-
+        #File submenu
         self.file_menu = Menu(self.menu, tearoff=0)
-        self.file_menu.add_command(label="New Mask", command=self.new)
-        self.file_menu.add_command(label="Save Mask", command=self.save)
+        self.file_menu.add_command(label="New Session", command=self.new)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Save Mask As", command=self.save_mask)
+        self.file_menu.add_command(label="Save Adjusted Source As", command=self.save_src)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self.master.quit)
         self.menu.add_cascade(label="File", menu=self.file_menu)
-
-        self.edit_menu = Menu(self.menu, tearoff=0)
-        self.edit_menu.add_command(label="See Mask", command=self.see_mask)
-        self.edit_menu.add_command(label="See Source", command=self.see_src)
-        self.menu.add_cascade(label="Edit", menu=self.edit_menu)
-
+        #View Submenu
+        self.view_menu = Menu(self.menu, tearoff=0)
+        self.view_menu.add_command(label="View Source (1)", command=self.see_src)
+        self.view_menu.add_command(label="View Mask (2)", command=self.see_mask)
+        self.view_menu.add_command(label="View Destination (3)", command=self.see_dst)
+        self.menu.add_cascade(label="View", menu=self.view_menu)
+        #Setting menu to main window
         self.master.config(menu=self.menu)
 
-    def new(self):
-        filename = askopenfilename()
-        if filename == '':
-            return
-        self.src = Image.open(filename)
-        self.src_tk = ImageTk.PhotoImage(self.src)
+    #Represents the popup shown on a new session to pick source and destination images
+    class SessionPopup(object):
+        def __init__(self, confirmation_callback):
+            self.confirmation_callback = confirmation_callback
+            self.src_filename = None
+            self.dst_filename = None
 
-        self.mask = Image.new(mode='L', size=self.src.size, color=0)
+            self.top = Toplevel()
+            self.top.title("Please select a source and a destination image")
+
+            src_frame = Frame(self.top)
+            src_frame.pack()
+            src_label = Label(src_frame, text="Source Image : ")
+            src_label.pack(side=LEFT)
+            self.src_value = Label(src_frame, text="None selected")
+            self.src_value.pack(side=LEFT)
+            src_button = Button(src_frame, text="Pick", command=self.pick_src)
+            src_button.pack(side=LEFT)
+
+            dst_frame = Frame(self.top)
+            dst_frame.pack()
+            dst_label = Label(dst_frame, text="Destination Image : ")
+            dst_label.pack(side=LEFT)
+            self.dst_value = Label(dst_frame, text="None selected")
+            self.dst_value.pack(side=LEFT)
+            dst_button = Button(dst_frame, text="Pick", command=self.pick_dst)
+            dst_button.pack(side=LEFT)
+
+            button_frame = Frame(self.top)
+            button_frame.pack(side=BOTTOM)
+            cancel = Button(button_frame, text="Cancel", command=self.top.destroy)
+            cancel.pack(side=LEFT)
+            self.confirm_btn = Button(button_frame, text="Confirm", state=DISABLED, command=self.confirm)
+            self.confirm_btn.pack(side=LEFT)
+
+        def confirm(self):
+            self.top.destroy()
+            self.confirmation_callback(self.src_filename, self.dst_filename, self)
+
+        def pick_src(self):
+            filename = askopenfilename()
+            if filename == '':
+                return
+            self.src_filename = filename
+            self.src_value.configure(text=self.src_filename)
+            self.activate_confirm()
+
+        def pick_dst(self):
+            filename = askopenfilename()
+            if filename == '':
+                return
+            self.dst_filename = filename
+            self.dst_value.configure(text=self.dst_filename)
+            self.activate_confirm()
+
+        def activate_confirm(self):
+            if self.src_filename is not None and self.dst_filename is not None:
+                self.confirm_btn.configure(state=NORMAL)
+
+
+    #Shows a popup to initialise a Session
+    def new(self):
+        self.SessionPopup(self.init_session)
+
+    #Initialise a session with a source and a destination image
+    def init_session(self, src_filename, dst_filename, popup):
+        # Make sure the SessionPopup is deleted
+        del popup
+
+        #Open the images and keep them in memory : we'll need them to blend the mask
+        self.src = Image.open(src_filename)
+        self.dst = Image.open(dst_filename)
+
+        #Make sure that the images are of the same color mode (RGB, RGBA, L, etc)
+        if self.src.mode != self.dst.mode:
+            self.instructions_label.configure(text="Please select two image using the same same color mode.\n Ex: RGB, RGBA, L, etc.")
+            return
+
+        #Take note of the destination's extension, we'll recommend it when saving
+        parts = dst_filename.split('.')
+        self.dst_extension = "." + parts[len(parts)-1]
+
+        #Create resized source image to fit destination size
+        self.resize_src()
+
+        #Create an image in memory for the mask and also initialise an ImageDraw to edit it
+        self.mask = Image.new(mode=self.resized_src.mode, size=self.resized_src.size, color=self.get_color(0))
         self.mask_draw = ImageDraw.Draw(self.mask)
 
-        self.src_panel = Label(self.master, image=self.src_tk)
-        self.src_panel.bind('<B1-Motion>', self.select_patch)
-        self.src_panel.pack()
+        #Default view : show the source image
+        self.see_src()
+        self.instructions_label.configure(text="Left click and drag to add draw to the mask.\nRight click and drag to remove from the mask.\nUse 1,2,3 to view source, mask, destination")
 
-    def select_patch(self, event):
-        self.mask_draw.ellipse([max(0, event.x - self.brush_size), max(0, event.y - self.brush_size), min(self.mask.width, event.x + self.brush_size), min(self.mask.height, event.y + self.brush_size)], outline=255, fill=255)
-        self.see_mask()
-    
-    def see_mask(self):
-        self.mask_tk = ImageTk.PhotoImage(self.mask)
-        self.src_panel.configure(image=self.mask_tk)
+        #Record left click drag to add a brush patch to the mask, and right click drag to remove it from the mask
+        self.image_label.bind('<B1-Motion>', lambda e: self.color_patch(e, 255))
+        self.image_label.bind('<B2-Motion>', lambda e: self.color_patch(e, 0))
 
-    def see_src(self):
-        self.src_panel.configure(image=self.src_tk)
+    #Sets the source image to the same size as the destination image
+    def resize_src(self):
+        #We store the resized image in another variable to still be able to manipulate
+        #the original one for offsets
+        self.resized_src = self.src.copy()
 
-    def handle_key(self, event):
-        if event.char == '1':
-            self.see_mask()
-        elif event.char == '2':
-            self.see_src()
+        should_crop = False
+        crop_size = [self.resized_src.width, self.resized_src.height]
+        should_extend = False
+        extend_size = [self.resized_src.width, self.resized_src.height]
 
-    def save(self):
-        filename = asksaveasfilename(defaultextension=".jpg")
+        #We check if we need to crop or extend horizontally to fit destination size
+        if self.dst.width > self.resized_src.width:
+            should_extend = True
+            extend_size[0] = self.dst.width
+        elif self.dst.width < self.resized_src.width:
+            should_crop = True
+            crop_size[0] = self.dst.width
+
+        #We check if we need to crop or extend vertically to fit destination size
+        if self.dst.height > self.resized_src.height:
+            should_extend = True
+            extend_size[1] = self.dst.height
+        elif self.dst.height < self.resized_src.height:
+            should_crop = True
+            crop_size[1] = self.dst.height
+
+        #Crop image if required
+        if should_crop:
+            self.resized_src = self.resized_src.crop((0,0,crop_size[0],crop_size[1]))
+
+        #Extend image if required
+        if should_extend:
+            temp = Image.new(mode=self.resized_src.mode, size=(extend_size[0], extend_size[1]), color=self.get_color(0))
+            temp.paste(self.resized_src)
+            self.resized_src = temp
+
+    #Saves the current session's mask
+    def save_mask(self):
+        if self.mask is None:
+            return
+        filename = asksaveasfilename(defaultextension=self.dst_extension)
         if filename == '':
             return
-        self.mask.save(filename, "JPEG")
-        
-        
+        self.mask.save(filename)
+
+    #Saves a modified version of the source image to fit the destination image's
+    #size and offseted like shown in the viewer
+    def save_src(self):
+        if self.resized_src is None:
+            return
+        filename = asksaveasfilename(defaultextension=self.dst_extension)
+        if filename == '':
+            return
+        self.resized_src.save(filename)
+
+    #Switch view to show the source image with a transparent mask on it
+    def see_src(self):
+        if self.resized_src is None:
+            return
+        self.viewed_src = Image.blend(self.resized_src, self.mask, self.mask_opacity)
+        self.src_tk = ImageTk.PhotoImage(self.viewed_src)
+        self.image_label.configure(image=self.src_tk)
+
+    #Switch view to show the mask image
+    def see_mask(self):
+        if self.mask is None:
+            return
+        self.mask_tk = ImageTk.PhotoImage(self.mask)
+        self.image_label.configure(image=self.mask_tk)
+
+    #Switch view to show the destination image with a transparent inverse mask on it
+    def see_dst(self):
+        if self.dst is None:
+            return
+        # TODO Fill and use self.viewed_dst
+        self.dst_tk = ImageTk.PhotoImage(self.dst)
+        self.image_label.configure(image=self.dst_tk)
+
+    #Refreshes current view with up to date data
+    def update_view(self):
+        if self.current_view == '1':
+            self.see_src()
+        elif self.current_view == '2':
+            self.see_mask()
+        elif self.current_view == '3':
+            self.see_dst()
+
+    #Key event handler
+    def handle_key(self, event):
+        if event.char == '1':
+            self.current_view = '1'
+            self.see_src()
+        elif event.char == '2':
+            self.current_view = '2'
+            self.see_mask()
+        elif event.char == '3':
+            self.current_view = '3'
+            self.see_dst()
+
+    #Colors a patch of the mask according to a motion event
+    def color_patch(self, event, color):
+        bounds = [max(0, event.x - self.brush_size),
+                  max(0, event.y - self.brush_size),
+                  min(self.mask.width, event.x + self.brush_size),
+                  min(self.mask.height, event.y + self.brush_size)]
+        self.mask_draw.ellipse(bounds, outline=self.get_color(color), fill=self.get_color(color))
+        self.update_view()
+
+    #Utility giving the color represented correctly for the color mode used in src and dst
+    #|color| param should be a value of 0 to 255
+    #Currently, only formats using values from 0 to 255 for each color channel are supported
+    def get_color(self, color):
+        if self.dst.mode == 'L':
+            return color
+        elif self.dst.mode == 'RGB':
+            return (color,color,color)
+        elif self.dst.mode == 'RGBA':
+            return (color,color,color,255)
 
 root = Tk()
-my_gui = MainUI(root)
+my_gui = MaskMaker(root)
+
+#Have window be in front when created
+root.lift()
+root.attributes('-topmost',True)
+root.after_idle(root.attributes,'-topmost',False)
+
+
 root.mainloop()
