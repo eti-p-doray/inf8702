@@ -1,6 +1,6 @@
 from Tkinter import *
 from tkFileDialog import askopenfilename, asksaveasfilename
-from PIL import ImageTk, Image, ImageDraw
+from PIL import ImageTk, Image, ImageDraw, ImageChops
 
 ##########################################################
 #Mask making Tkinter program
@@ -154,7 +154,8 @@ class MaskMaker(object):
 
         #Default view : show the source image
         self.see_src()
-        self.instructions_label.configure(text="Left click and drag to add draw to the mask.\nRight click and drag to remove from the mask.\nUse 1,2,3 to view source, mask, destination")
+        self.current_view = '1'
+        self.instructions_label.configure(text="Left click and drag to add draw to the mask.\nRight click and drag to remove from the mask.\nMove source and mask with w,a,s,d(1px) or W,A,S,D(10px)\nUse 1,2,3 to view source, mask, destination")
 
         #Record left click drag to add a brush patch to the mask, and right click drag to remove it from the mask
         self.image_label.bind('<B1-Motion>', lambda e: self.color_patch(e, 255))
@@ -196,6 +197,17 @@ class MaskMaker(object):
             temp = Image.new(mode=self.resized_src.mode, size=(extend_size[0], extend_size[1]), color=self.get_color(0))
             temp.paste(self.resized_src)
             self.resized_src = temp
+
+    #Offsets the resized source and the mask in a direction
+    def offset_images(self, x_offset=0, y_offset=0):
+        if self.resized_src is None or self.mask is None:
+            return
+
+        self.resized_src = ImageChops.offset(self.resized_src,x_offset, y_offset)
+        self.mask = ImageChops.offset(self.mask, x_offset, y_offset)
+        self.mask_draw = ImageDraw.Draw(self.mask) #update draw handle
+
+        self.update_view()
 
     #Saves the current session's mask
     def save_mask(self):
@@ -259,6 +271,22 @@ class MaskMaker(object):
         elif event.char == '3':
             self.current_view = '3'
             self.see_dst()
+        elif event.char == 'w':
+            self.offset_images(y_offset=-1)
+        elif event.char == 'a':
+            self.offset_images(x_offset=-1)
+        elif event.char == 's':
+            self.offset_images(y_offset=1)
+        elif event.char == 'd':
+            self.offset_images(x_offset=1)
+        elif event.char == 'W':
+            self.offset_images(y_offset=-10)
+        elif event.char == 'A':
+            self.offset_images(x_offset=-10)
+        elif event.char == 'S':
+            self.offset_images(y_offset=10)
+        elif event.char == 'D':
+            self.offset_images(x_offset=10)
 
     #Colors a patch of the mask according to a motion event
     def color_patch(self, event, color):
