@@ -85,8 +85,7 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
   // Where N_p are the neighbooring 4 pixels to p, f_p is the intensity of the source at p,
   // delta_omega is the boundary's domain, f*_q the intensity of the destination at q
   // and v_pq is the vector guidance field's value for the point between p and q,
-  // ie. v_pq = dot(v((p+q)/2),pq->), with v the gradient field and pq-> the oriented edge
-  // between p and q.
+  // ie. v_pq = g_p - g_q, with g_{something} being the source image's value at "something"
   // Do note that we do not reuse this notation.
 
   // calculate the right side of the equation, see above. Constant across solving
@@ -146,8 +145,7 @@ class poisson_blending_cl {
     // Where N_p are the neighbooring 4 pixels to p, f_p is the intensity of the source at p,
     // delta_omega is the boundary's domain, f*_q the intensity of the destination at q
     // and v_pq is the vector guidance field's value for the point between p and q,
-    // ie. v_pq = dot(v((p+q)/2),pq->), with v the gradient field and pq-> the oriented edge
-    // between p and q.
+    // ie. v_pq = g_p - g_q, with g_{something} being the source image's value at "something"
     // Do note that we do not reuse this notation.
 
     // OpenCl image of the mask
