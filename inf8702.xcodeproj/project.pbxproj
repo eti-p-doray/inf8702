@@ -8,6 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		8F1B50BB1FB65CC400111750 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F1B50BA1FB65CC400111750 /* OpenCL.framework */; };
+		8F3EC53D1FCB9F460008D26B /* blend.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F3EC53A1FCB9F460008D26B /* blend.cpp */; };
+		8F3EC53E1FCB9F460008D26B /* clone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F3EC53B1FCB9F460008D26B /* clone.cpp */; };
+		8F3EC53F1FCB9F460008D26B /* poisson_solver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F3EC53C1FCB9F460008D26B /* poisson_solver.cpp */; };
+		8F3EC5401FCBA1520008D26B /* libopencv_core.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FD5DF241FAF5F2C0006921E /* libopencv_core.3.3.1.dylib */; };
+		8F3EC5411FCBA2580008D26B /* libopencv_imgproc.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FD5DF2A1FAF62E00006921E /* libopencv_imgproc.3.3.1.dylib */; };
+		8F3EC5431FCBA27E0008D26B /* seamless_cloning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F3EC5421FCBA27E0008D26B /* seamless_cloning.cpp */; };
+		8F3EC5441FCBA4990008D26B /* libopencv_imgcodecs.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FD5DF261FAF5F2C0006921E /* libopencv_imgcodecs.3.3.1.dylib */; };
+		8F3EC5451FCBA4C50008D26B /* libopencv_highgui.3.3.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8FD5DF251FAF5F2C0006921E /* libopencv_highgui.3.3.1.dylib */; };
 		8F90C7451FC4744D005CD387 /* command_queue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F90C73F1FC4744D005CD387 /* command_queue.cpp */; };
 		8F90C7461FC4744D005CD387 /* event.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F90C7401FC4744D005CD387 /* event.cpp */; };
 		8F90C7471FC4744D005CD387 /* kernel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F90C7411FC4744D005CD387 /* kernel.cpp */; };
@@ -24,6 +32,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		8F3EC5311FCB9F1F0008D26B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		8FD5DF101FAF54DF0006921E /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -37,6 +54,11 @@
 
 /* Begin PBXFileReference section */
 		8F1B50BA1FB65CC400111750 /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = System/Library/Frameworks/OpenCL.framework; sourceTree = SDKROOT; };
+		8F3EC5331FCB9F1F0008D26B /* poisson-image-editing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "poisson-image-editing"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8F3EC53A1FCB9F460008D26B /* blend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = blend.cpp; path = src/blend.cpp; sourceTree = "<group>"; };
+		8F3EC53B1FCB9F460008D26B /* clone.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = clone.cpp; path = src/clone.cpp; sourceTree = "<group>"; };
+		8F3EC53C1FCB9F460008D26B /* poisson_solver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = poisson_solver.cpp; path = src/poisson_solver.cpp; sourceTree = "<group>"; };
+		8F3EC5421FCBA27E0008D26B /* seamless_cloning.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = seamless_cloning.cpp; path = examples/seamless_cloning.cpp; sourceTree = "<group>"; };
 		8F7719651FB22FEC007D9B74 /* libfreeimage.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libfreeimage.a; path = ../../../../../../usr/local/Cellar/freeimage/3.16.0/lib/libfreeimage.a; sourceTree = "<group>"; };
 		8F90C73F1FC4744D005CD387 /* command_queue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = command_queue.cpp; path = cl/command_queue.cpp; sourceTree = SOURCE_ROOT; };
 		8F90C7401FC4744D005CD387 /* event.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = event.cpp; path = cl/event.cpp; sourceTree = SOURCE_ROOT; };
@@ -61,6 +83,17 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		8F3EC5301FCB9F1F0008D26B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8F3EC5451FCBA4C50008D26B /* libopencv_highgui.3.3.1.dylib in Frameworks */,
+				8F3EC5441FCBA4990008D26B /* libopencv_imgcodecs.3.3.1.dylib in Frameworks */,
+				8F3EC5411FCBA2580008D26B /* libopencv_imgproc.3.3.1.dylib in Frameworks */,
+				8F3EC5401FCBA1520008D26B /* libopencv_core.3.3.1.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8FD5DF0F1FAF54DF0006921E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -77,11 +110,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8F3EC5341FCB9F1F0008D26B /* poisson-image-editing */ = {
+			isa = PBXGroup;
+			children = (
+				8F3EC5421FCBA27E0008D26B /* seamless_cloning.cpp */,
+				8F3EC53A1FCB9F460008D26B /* blend.cpp */,
+				8F3EC53B1FCB9F460008D26B /* clone.cpp */,
+				8F3EC53C1FCB9F460008D26B /* poisson_solver.cpp */,
+			);
+			path = "poisson-image-editing";
+			sourceTree = "<group>";
+		};
 		8FD5DF091FAF54DF0006921E = {
 			isa = PBXGroup;
 			children = (
 				8FD5DF1C1FAF55070006921E /* projet */,
 				8FD5DF141FAF54DF0006921E /* inf8702 */,
+				8F3EC5341FCB9F1F0008D26B /* poisson-image-editing */,
 				8FD5DF131FAF54DF0006921E /* Products */,
 				8FD5DF1F1FAF56250006921E /* Frameworks */,
 			);
@@ -91,6 +136,7 @@
 			isa = PBXGroup;
 			children = (
 				8FD5DF121FAF54DF0006921E /* inf8702 */,
+				8F3EC5331FCB9F1F0008D26B /* poisson-image-editing */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -132,6 +178,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		8F3EC5321FCB9F1F0008D26B /* poisson-image-editing */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8F3EC5391FCB9F200008D26B /* Build configuration list for PBXNativeTarget "poisson-image-editing" */;
+			buildPhases = (
+				8F3EC52F1FCB9F1F0008D26B /* Sources */,
+				8F3EC5301FCB9F1F0008D26B /* Frameworks */,
+				8F3EC5311FCB9F1F0008D26B /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "poisson-image-editing";
+			productName = "poisson-image-editing";
+			productReference = 8F3EC5331FCB9F1F0008D26B /* poisson-image-editing */;
+			productType = "com.apple.product-type.tool";
+		};
 		8FD5DF111FAF54DF0006921E /* inf8702 */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8FD5DF191FAF54DF0006921E /* Build configuration list for PBXNativeTarget "inf8702" */;
@@ -158,6 +221,10 @@
 				LastUpgradeCheck = 0820;
 				ORGANIZATIONNAME = "Etienne Pierre-Doray";
 				TargetAttributes = {
+					8F3EC5321FCB9F1F0008D26B = {
+						CreatedOnToolsVersion = 8.2.1;
+						ProvisioningStyle = Automatic;
+					};
 					8FD5DF111FAF54DF0006921E = {
 						CreatedOnToolsVersion = 8.2.1;
 						ProvisioningStyle = Automatic;
@@ -177,11 +244,23 @@
 			projectRoot = "";
 			targets = (
 				8FD5DF111FAF54DF0006921E /* inf8702 */,
+				8F3EC5321FCB9F1F0008D26B /* poisson-image-editing */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		8F3EC52F1FCB9F1F0008D26B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8F3EC53F1FCB9F460008D26B /* poisson_solver.cpp in Sources */,
+				8F3EC53D1FCB9F460008D26B /* blend.cpp in Sources */,
+				8F3EC53E1FCB9F460008D26B /* clone.cpp in Sources */,
+				8F3EC5431FCBA27E0008D26B /* seamless_cloning.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8FD5DF0E1FAF54DF0006921E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -200,6 +279,44 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		8F3EC5371FCB9F200008D26B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				HEADER_SEARCH_PATHS = (
+					usr/local/include,
+					"${PROJECT_DIR}/poisson-image-editing/inc",
+					/usr/local/Cellar/opencv/3.3.1_1/include,
+					/usr/local/include/eigen3,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					usr/local/lib,
+					/usr/local/Cellar/opencv/3.3.1_1/lib,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+			};
+			name = Debug;
+		};
+		8F3EC5381FCB9F200008D26B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				HEADER_SEARCH_PATHS = (
+					usr/local/include,
+					"${PROJECT_DIR}/poisson-image-editing/inc",
+					/usr/local/Cellar/opencv/3.3.1_1/include,
+					/usr/local/include/eigen3,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					usr/local/lib,
+					/usr/local/Cellar/opencv/3.3.1_1/lib,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+			};
+			name = Release;
+		};
 		8FD5DF171FAF54DF0006921E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -324,6 +441,14 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		8F3EC5391FCB9F200008D26B /* Build configuration list for PBXNativeTarget "poisson-image-editing" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8F3EC5371FCB9F200008D26B /* Debug */,
+				8F3EC5381FCB9F200008D26B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		8FD5DF0D1FAF54DF0006921E /* Build configuration list for PBXProject "inf8702" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
