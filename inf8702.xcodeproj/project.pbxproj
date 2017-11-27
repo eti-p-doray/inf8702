@@ -415,6 +415,7 @@
 					/usr/local/Cellar/opencv/3.3.1_1/lib,
 					/usr/local/Cellar/boost/1.65.1/lib,
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				OTHER_CFLAGS = "-Wno-c++11-narrowing";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "${PROJECT_DIR}";
@@ -432,6 +433,7 @@
 					/usr/local/Cellar/opencv/3.3.1_1/lib,
 					/usr/local/Cellar/boost/1.65.1/lib,
 				);
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				OTHER_CFLAGS = "-Wno-c++11-narrowing";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "${PROJECT_DIR}";
@@ -448,6 +450,7 @@
 				8F3EC5381FCB9F200008D26B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		8FD5DF0D1FAF54DF0006921E /* Build configuration list for PBXProject "inf8702" */ = {
 			isa = XCConfigurationList;
