@@ -12,7 +12,7 @@ gil::mat<gil::vec3f> make_guidance(gil::mat_cview<gil::vec3f> f,
                                    gil::mat_cview<uint8_t> mask,
                                    gil::mat_cview<uint8_t> boundary);
 
-gil::mat<gil::vec3f> make_guidance2(gil::mat_cview<gil::vec3f> f,
+gil::mat<gil::vec3f> make_guidance_mixed_gradient(gil::mat_cview<gil::vec3f> f,
                                     gil::mat_cview<gil::vec3f> g,
                                     gil::mat_cview<uint8_t> mask,
                                     gil::mat_cview<uint8_t> boundary);

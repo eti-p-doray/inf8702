@@ -1,6 +1,7 @@
 #include "poisson_serial.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 gil::mat<uint8_t> make_boundary(gil::mat_cview<uint8_t> mask) {
   gil::mat<uint8_t> boundary({mask.rows(), mask.cols()});
@@ -54,7 +55,7 @@ gil::mat<gil::vec3f> make_guidance(gil::mat_cview<gil::vec3f> f,
   return dst;
 }
 
-gil::mat<gil::vec3f> make_guidance2(gil::mat_cview<gil::vec3f> f,
+gil::mat<gil::vec3f> make_guidance_mixed_gradient(gil::mat_cview<gil::vec3f> f,
                                     gil::mat_cview<gil::vec3f> g,
                                     gil::mat_cview<uint8_t> mask,
                                     gil::mat_cview<uint8_t> boundary) {
@@ -73,10 +74,18 @@ gil::mat<gil::vec3f> make_guidance2(gil::mat_cview<gil::vec3f> f,
     auto dst_it = dst.row_begin(i)+1;
     for (size_t j = 1; j < mask.cols()-1; ++j, ++mask_it, ++bound_it, ++f_it, ++g_it, ++dst_it) {
       if (*mask_it >= 128) {
-        *dst_it += std::max(*g_it - g_it[-1], *f_it - f_it[-1]);
-        *dst_it += std::max(*g_it - g_it[1], *f_it - f_it[-1]);
-        *dst_it += std::max(*g_it - g_it[-g_step], *f_it - f_it[-f_step]);
-        *dst_it += std::max(*g_it - g_it[g_step], *f_it - f_it[f_step]);
+        gil::vec3f v[2][4] = {{*g_it - g_it[-1],
+                         *g_it - g_it[1],
+                         *g_it - g_it[-g_step],
+                         *g_it - g_it[g_step]},
+                        {*f_it - f_it[-1],
+                         *f_it - f_it[1],
+                         *f_it - f_it[-f_step],
+                         *f_it - f_it[f_step]}};
+        for (int k = 0; k < 4; ++k) {
+          int x = gil::norm2(v[0][k]) > gil::norm2(v[1][k]) ? 0 : 1;
+          (*dst_it) += v[x][k];
+        }
       }
       if (*bound_it == 255) {
         dst_it[-1] += *f_it;

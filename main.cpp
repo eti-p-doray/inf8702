@@ -54,7 +54,7 @@ void poisson_blending_serial(gil::mat_cview<uint8_t> mask,
                       gil::mat_view<gil::vec3f> result) {
   
   
-  auto b = make_guidance(dst, src, mask, make_boundary(mask));
+  auto b = make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask));
   apply_mask(mask, b);
   gil::mat<gil::vec3f> f(dst.size());
   gil::mat<gil::vec3f> g(src.size());
