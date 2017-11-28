@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cmath>
 
-#include "tbb/tbb.h"
+#include <tbb/tbb.h>
+
+#include "poisson_tbb.hpp"
 
 using namespace tbb;
 
@@ -45,6 +47,24 @@ gil::mat<uint8_t> tbb_make_boundary(gil::mat_cview<uint8_t> mask) {
   ParallelBoundary para_bound(mask, boundary);
   parallel_for(blocked_range<size_t>(0, mask.rows() - 1), para_bound);
   return boundary;
+}
+
+gil::mat<gil::vec3f> tbb_make_guidance(gil::mat_cview<gil::vec3f> f,
+                                   gil::mat_cview<gil::vec3f> g,
+                                   gil::mat_cview<uint8_t> mask,
+                                   GradientMethod method) {
+  // calculate the right side of the equation, see above. Constant across solving
+  switch (method) {
+    default:
+    case GradientMethod::BASE:
+      return tbb_make_guidance(f, g, mask, make_boundary(mask));
+
+    case GradientMethod::MAX_MIXING:
+      return tbb_make_guidance_mixed_gradient(f, g, mask, make_boundary(mask));
+
+    case GradientMethod::AVG_MIXING:
+      return tbb_make_guidance_mixed_gradient_avg(f, g, mask, make_boundary(mask));
+  }
 }
 
 /**
