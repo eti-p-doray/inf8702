@@ -10,6 +10,7 @@
 #include "gil/mat.hpp"
 #include "gil/vec.hpp"
 #include "poisson_serial.hpp"
+#include "poisson_tbb.hpp"
 
 #include "cl/device.hpp"
 #include "cl/context.hpp"
@@ -107,6 +108,46 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
   result = dst;
   copy(f, mask, result); // put resulting f's area corresponding to mask in
                          // output |result| variable to return
+}
+
+/**
+ * Applies poisson blending on a multiple cpu process. Finds a patch by applying
+ * |mask|upon |src| and blend this patch on |dst| at the corresponding region
+ * (again described by applying |mask|). The result of the blending is put in
+ * the output parameter |result|.
+ */
+void poisson_blending_tbb(gil::mat_cview<uint8_t> mask,
+                             gil::mat_cview<gil::vec3f> src,
+                             gil::mat_cview<gil::vec3f> dst,
+                             gil::mat_view<gil::vec3f> result) {
+
+  assert(src.size() == mask.size());
+  assert(dst.size() == mask.size());
+
+  // Formula applied here : for all p in the destination domain (omega)
+  // |N_p| * f_p - sum[all q in (N_p intersection omega)]{f_q} =
+  // sum[all q in (N_p intersection delta_omega)]{f*_q} + sum[all q in N_p]{v_pq}
+  // (equation 7 of http://www.cs.virginia.edu/~connelly/class/2014/comp_photo/proj2/poisson.pdf)
+  // Where N_p are the neighbooring 4 pixels to p, f_p is the intensity of the source at p,
+  // delta_omega is the boundary's domain, f*_q the intensity of the destination at q
+  // and v_pq is the vector guidance field's value for the point between p and q,
+  // ie. v_pq = g_p - g_q, with g_{something} being the source image's value at "something"
+  // Do note that we do not reuse this notation.
+
+  // calculate the right side of the equation, see above. Constant across solving
+  auto b = (USE_MIXING_GRADIENT ? tbb_make_guidance_mixed_gradient(dst, src, mask, tbb_make_boundary(mask))
+            : tbb_make_guidance(dst, src, mask, tbb_make_boundary(mask)));
+  tbb_apply_mask(mask, b); // select the part corresponding to the mask's region
+  gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
+  gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
+  copy(dst, mask, f); //applies the mask on destination and put the output as a copy in f.
+  for (int i = 0; i < 100; ++i) { // applying iterative method to have the value of f converge
+    tbb_jacobi_iteration(f, b, mask, g); // Calculate the new value of g
+    f.swap(g); // use g as an input for next iteration
+  }
+  result = dst;
+  copy(f, mask, result); // put resulting f's area corresponding to mask in
+  // output |result| variable to return
 }
 
 // Class to be used to execute the poisson blending with OpenCL.
@@ -287,6 +328,14 @@ int main() {
   diff = end-start;
   std::cout << diff.count() << std::endl;
   cv::imwrite("result2.jpg", cv::Mat(result));
+
+  // Time the tbb calculation of serial poisson blending and save its output in a file
+  start = std::chrono::high_resolution_clock::now();
+  poisson_blending_tbb(mask[frame], src[frame], dst[frame], result[frame]);
+  end = std::chrono::high_resolution_clock::now();
+  diff = end-start;
+  std::cout << diff.count() << std::endl;
+  cv::imwrite("result3.jpg", cv::Mat(result));
 
   return 0;
 }
