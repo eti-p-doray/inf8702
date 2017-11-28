@@ -126,7 +126,75 @@ gil::mat<gil::vec3f> tbb_make_guidance(gil::mat_cview<gil::vec3f> f,
   return dst;
 }
 
-//for?
+/**
+ * Class used by the parallel_for calculating guidance field with mixed gradients
+ */
+class ParallelGuidanceMixed {
+private:
+  gil::mat_view<gil::vec3f> guidance_;
+  gil::mat_cview<uint8_t> mask_;
+  gil::mat_cview<uint8_t> boundary_;
+  gil::mat_cview<gil::vec3f> g_;
+  gil::mat_cview<gil::vec3f> f_;
+
+  size_t f_step_;
+  size_t g_step_;
+  size_t bound_step_;
+public:
+  ParallelGuidanceMixed(const gil::mat_cview<gil::vec3f>& f, const gil::mat_cview<gil::vec3f>& g,
+    const gil::mat_cview<uint8_t>& mask, const gil::mat_cview<uint8_t>& boundary,
+    gil::mat_view<gil::vec3f>& guidance)
+    : mask_(mask), boundary_(boundary), g_(g), f_(f), guidance_(guidance),
+      f_step_(f_.stride()), g_step_(g_.stride()), bound_step_(boundary_.stride())
+      {}
+
+  void operator() (const blocked_range<size_t>& range) const {
+    for (size_t i = range.begin(); i != range.end(); ++i) {
+      auto mask_it = mask_.row_cbegin(i)+1;
+      auto bound_it = boundary_.row_cbegin(i)+1;
+      auto f_it = f_.row_cbegin(i)+1;
+      auto g_it = g_.row_cbegin(i)+1;
+      auto guidance_it = guidance_.row_begin(i)+1;
+      for (size_t j = 1; j < mask_.cols()-1; ++j, ++mask_it, ++bound_it, ++f_it, ++g_it, ++guidance_it) {
+        gil::vec3f temp({0.0f, 0.0f, 0.0f}); //for better quicker accesses
+        if (*mask_it >= 128) { // if the current pixel is in the mask
+          //vector containing the 2 potential values of v for each 4 neighboors
+          // First dimension tells if f* or g is used, second to tell which neighboor
+          gil::vec3f v[2][4] = {{*g_it - g_it[-1],
+                           *g_it - g_it[1],
+                           *g_it - g_it[-g_step_],
+                           *g_it - g_it[g_step_]},
+                          {*f_it - f_it[-1],
+                           *f_it - f_it[1],
+                           *f_it - f_it[-f_step_],
+                           *f_it - f_it[f_step_]}};
+          for (int k = 0; k < 4; ++k) { // for each neighboor
+            //Use the highest gradient between the one from f* and the one from g
+            int x = gil::norm2(v[0][k]) > gil::norm2(v[1][k]) ? 0 : 1;
+            temp += v[x][k];
+          }
+        }
+
+        // 1st part of the right side of the equation, in the form of adding f* to
+        // the 4 neighboors of a boundary pixel
+        if (bound_it[-1] == 255) {
+          temp += f_it[-1];
+        }
+        if (bound_it[1] == 255) {
+          temp += f_it[1];
+        }
+        if (bound_it[-bound_step_] == 255) {
+          temp += f_it[-f_step_];
+        }
+        if (bound_it[bound_step_] == 255) {
+          temp += f_it[f_step_];
+        }
+
+        *guidance_it += temp;
+      }
+    }
+  }
+};
 /**
  * Calculates the guidance field composed of the |boundary| in destination image |f|
  * and the vector field corresponding to the |mask|'s area in |g|.
@@ -141,43 +209,8 @@ gil::mat<gil::vec3f> tbb_make_guidance_mixed_gradient(gil::mat_cview<gil::vec3f>
   assert(g.size() == mask.size());
   assert(boundary.size() == mask.size());
   gil::mat<gil::vec3f> dst(f.size());
-  size_t g_step = g.stride();
-  size_t f_step = f.stride();
-  size_t dst_step = dst.stride();
-  for (int i = 1; i < mask.rows()-1; ++i) {
-    auto mask_it = mask.row_cbegin(i)+1;
-    auto bound_it = boundary.row_cbegin(i)+1;
-    auto f_it = f.row_cbegin(i)+1;
-    auto g_it = g.row_cbegin(i)+1;
-    auto dst_it = dst.row_begin(i)+1;
-    for (size_t j = 1; j < mask.cols()-1; ++j, ++mask_it, ++bound_it, ++f_it, ++g_it, ++dst_it) {
-      if (*mask_it >= 128) { // if current pixel is part of the mask
-        //vector containing the 2 potential values of v for each 4 neighboors
-        // First dimension tells if f* or g is used, second to tell which neighboor
-        gil::vec3f v[2][4] = {{*g_it - g_it[-1],
-                         *g_it - g_it[1],
-                         *g_it - g_it[-g_step],
-                         *g_it - g_it[g_step]},
-                        {*f_it - f_it[-1],
-                         *f_it - f_it[1],
-                         *f_it - f_it[-f_step],
-                         *f_it - f_it[f_step]}};
-        for (int k = 0; k < 4; ++k) { // for each neighboor
-          //Use the highest gradient between the one from f* and the one from g
-          int x = gil::norm2(v[0][k]) > gil::norm2(v[1][k]) ? 0 : 1;
-          (*dst_it) += v[x][k];
-        }
-      }
-      if (*bound_it == 255) { // if current pixel is part of the boundary
-        // 1st part of the right side of the equation, in the form of adding f* to
-        // the 4 neighboors of a boundary pixel
-        dst_it[-1] += *f_it;
-        dst_it[1] += *f_it;
-        dst_it[-dst_step] += *f_it;
-        dst_it[dst_step] += *f_it;
-      }
-    }
-  }
+  ParallelGuidanceMixed para_guide(f, g, mask, boundary, dst);
+  parallel_for(blocked_range<size_t>(0, mask.rows()), para_guide);
   return dst;
 }
 

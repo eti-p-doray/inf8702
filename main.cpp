@@ -90,7 +90,7 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
   // Do note that we do not reuse this notation.
 
   // calculate the right side of the equation, see above. Constant across solving
-  auto b = make_guidance_mixed_gradient(dst, src, mask, tbb_make_boundary(mask));
+  auto b = make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask));
   apply_mask(mask, b); // select the part corresponding to the mask's region
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
@@ -114,10 +114,10 @@ void poisson_blending_tbb(gil::mat_cview<uint8_t> mask,
                              gil::mat_cview<gil::vec3f> src,
                              gil::mat_cview<gil::vec3f> dst,
                              gil::mat_view<gil::vec3f> result) {
-  
+
   assert(src.size() == mask.size());
   assert(dst.size() == mask.size());
-  
+
   // Formula applied here : for all p in the destination domain (omega)
   // |N_p| * f_p - sum[all q in (N_p intersection omega)]{f_q} =
   // sum[all q in (N_p intersection delta_omega)]{f*_q} + sum[all q in N_p]{v_pq}
@@ -127,7 +127,7 @@ void poisson_blending_tbb(gil::mat_cview<uint8_t> mask,
   // and v_pq is the vector guidance field's value for the point between p and q,
   // ie. v_pq = g_p - g_q, with g_{something} being the source image's value at "something"
   // Do note that we do not reuse this notation.
-  
+
   // calculate the right side of the equation, see above. Constant across solving
   auto b = tbb_make_guidance_mixed_gradient(dst, src, mask, tbb_make_boundary(mask));
   tbb_apply_mask(mask, b); // select the part corresponding to the mask's region
@@ -314,7 +314,7 @@ int main() {
   diff = end-start;
   std::cout << diff.count() << std::endl;
   cv::imwrite("result2.jpg", cv::Mat(result));
-  
+
   // Time the tbb calculation of serial poisson blending and save its output in a file
   start = std::chrono::high_resolution_clock::now();
   poisson_blending_tbb(mask[frame], src[frame], dst[frame], result[frame]);
