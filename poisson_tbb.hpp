@@ -32,7 +32,7 @@ void tbb_jacobi_iteration(gil::mat_cview<gil::vec3f> src,
 template <class T>
 class ParallelApplyMask {
 public:
-  ParallelApplyMask(const gil::mat_cview<uint8_t>& mask, gil::mat_view<T>& image)
+  ParallelApplyMask(const gil::mat_cview<uint8_t> mask, gil::mat_view<T> image)
     : mask_(mask),  image_(image) {
     //empty, all in initialisation list
   }

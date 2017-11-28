@@ -12,7 +12,7 @@ using namespace tbb;
  */
 class ParallelBoundary {
 public:
-  ParallelBoundary(const gil::mat_cview<uint8_t>& mask, gil::mat_view<uint8_t>& boundary)
+  ParallelBoundary(const gil::mat_cview<uint8_t> mask, gil::mat_view<uint8_t> boundary)
     : mask_(mask), mask_step_(mask_.stride()), boundary_(boundary) {
     //empty, all in initialisation list
   }
@@ -62,9 +62,9 @@ private:
   size_t g_step_;
   size_t bound_step_;
 public:
-  ParallelGuidance(const gil::mat_cview<gil::vec3f>& f, const gil::mat_cview<gil::vec3f>& g,
-    const gil::mat_cview<uint8_t>& mask, const gil::mat_cview<uint8_t>& boundary,
-    gil::mat_view<gil::vec3f>& guidance)
+  ParallelGuidance(const gil::mat_cview<gil::vec3f> f, const gil::mat_cview<gil::vec3f> g,
+    const gil::mat_cview<uint8_t> mask, const gil::mat_cview<uint8_t> boundary,
+    gil::mat_view<gil::vec3f> guidance)
     : mask_(mask), boundary_(boundary), g_(g), f_(f), guidance_(guidance),
       f_step_(f_.stride()), g_step_(g_.stride()), bound_step_(boundary_.stride()){
     // empty, all in initialisation list
@@ -137,9 +137,9 @@ private:
   size_t g_step_;
   size_t bound_step_;
 public:
-  ParallelGuidanceMixed(const gil::mat_cview<gil::vec3f>& f, const gil::mat_cview<gil::vec3f>& g,
-    const gil::mat_cview<uint8_t>& mask, const gil::mat_cview<uint8_t>& boundary,
-    gil::mat_view<gil::vec3f>& guidance)
+  ParallelGuidanceMixed(const gil::mat_cview<gil::vec3f> f, const gil::mat_cview<gil::vec3f> g,
+    const gil::mat_cview<uint8_t> mask, const gil::mat_cview<uint8_t> boundary,
+    gil::mat_view<gil::vec3f> guidance)
     : mask_(mask), boundary_(boundary), g_(g), f_(f), guidance_(guidance),
       f_step_(f_.stride()), g_step_(g_.stride()), bound_step_(boundary_.stride())
       {}
@@ -215,8 +215,8 @@ gil::mat<gil::vec3f> tbb_make_guidance_mixed_gradient(gil::mat_cview<gil::vec3f>
  */
 class ParallelJacobi {
 public:
-  ParallelJacobi(const gil::mat_cview<gil::vec3f>& src, const gil::mat_cview<gil::vec3f>& b,
-    const gil::mat_cview<uint8_t>& mask, gil::mat_view<gil::vec3f>& dst)
+  ParallelJacobi(const gil::mat_cview<gil::vec3f> src, const gil::mat_cview<gil::vec3f> b,
+    const gil::mat_cview<uint8_t> mask, gil::mat_view<gil::vec3f> dst)
     : src_(src), b_(b), mask_(mask), dst_(dst), src_step_(src_.stride()) {
     //empty, all in initialisation list
   }
