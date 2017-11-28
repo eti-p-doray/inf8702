@@ -20,6 +20,12 @@ gil::mat<gil::vec3f> tbb_make_guidance_mixed_gradient(gil::mat_cview<gil::vec3f>
                                     gil::mat_cview<uint8_t> mask,
                                     gil::mat_cview<uint8_t> boundary);
 
+
+gil::mat<gil::vec3f> tbb_make_guidance_mixed_gradient_avg(gil::mat_cview<gil::vec3f> f,
+                                    gil::mat_cview<gil::vec3f> g,
+                                    gil::mat_cview<uint8_t> mask,
+                                    gil::mat_cview<uint8_t> boundary);
+
 void tbb_jacobi_iteration(gil::mat_cview<gil::vec3f> src,
                       gil::mat_cview<gil::vec3f> b,
                       gil::mat_cview<uint8_t> mask,

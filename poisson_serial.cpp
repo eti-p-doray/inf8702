@@ -124,6 +124,60 @@ gil::mat<gil::vec3f> make_guidance_mixed_gradient(gil::mat_cview<gil::vec3f> f,
 }
 
 /**
+ * Calculates the guidance field composed of the |boundary| in destination image |f|
+ * and the vector field corresponding to the |mask|'s area in |g|.
+ * This implementation uses mixed_gradients with average instead of g_p - g_q,
+ * which means that we pick the average between the gradient in source and in
+ * destination.
+ */
+gil::mat<gil::vec3f> make_guidance_mixed_gradient_avg(gil::mat_cview<gil::vec3f> f,
+                                    gil::mat_cview<gil::vec3f> g,
+                                    gil::mat_cview<uint8_t> mask,
+                                    gil::mat_cview<uint8_t> boundary) {
+  assert(f.size() == mask.size());
+  assert(g.size() == mask.size());
+  assert(boundary.size() == mask.size());
+  gil::mat<gil::vec3f> dst(f.size());
+  size_t g_step = g.stride();
+  size_t f_step = f.stride();
+  size_t dst_step = dst.stride();
+  for (int i = 1; i < mask.rows()-1; ++i) {
+    auto mask_it = mask.row_cbegin(i)+1;
+    auto bound_it = boundary.row_cbegin(i)+1;
+    auto f_it = f.row_cbegin(i)+1;
+    auto g_it = g.row_cbegin(i)+1;
+    auto dst_it = dst.row_begin(i)+1;
+    for (size_t j = 1; j < mask.cols()-1; ++j, ++mask_it, ++bound_it, ++f_it, ++g_it, ++dst_it) {
+      if (*mask_it >= 128) { // if current pixel is part of the mask
+        //vector containing the 2 potential values of v for each 4 neighboors
+        // First dimension tells if f* or g is used, second to tell which neighboor
+        gil::vec3f v[2][4] = {{*g_it - g_it[-1],
+                         *g_it - g_it[1],
+                         *g_it - g_it[-g_step],
+                         *g_it - g_it[g_step]},
+                        {*f_it - f_it[-1],
+                         *f_it - f_it[1],
+                         *f_it - f_it[-f_step],
+                         *f_it - f_it[f_step]}};
+        for (int k = 0; k < 4; ++k) { // for each neighboor
+          //Use average of gradient in both f* and g
+          (*dst_it) += 0.5 * (v[0][k] + v[1][k]);
+        }
+      }
+      if (*bound_it == 255) { // if current pixel is part of the boundary
+        // 1st part of the right side of the equation, in the form of adding f* to
+        // the 4 neighboors of a boundary pixel
+        dst_it[-1] += *f_it;
+        dst_it[1] += *f_it;
+        dst_it[-dst_step] += *f_it;
+        dst_it[dst_step] += *f_it;
+      }
+    }
+  }
+  return dst;
+}
+
+/**
  * Function to execute one iteration of the iterative Jacobi method, applied to
  * the poisson equation. It calculates the left side of the equation and finds
  * a new |src| to use (put in |dst|), only applied at |mask|'s region and using

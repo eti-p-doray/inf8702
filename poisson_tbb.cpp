@@ -211,6 +211,94 @@ gil::mat<gil::vec3f> tbb_make_guidance_mixed_gradient(gil::mat_cview<gil::vec3f>
 }
 
 /**
+ * Class used by the parallel_for calculating guidance field with mixed gradients
+ * using average of gradient instead of the classic max of gradients
+ */
+class ParallelGuidanceMixedAvg {
+private:
+  gil::mat_view<gil::vec3f> guidance_;
+  gil::mat_cview<uint8_t> mask_;
+  gil::mat_cview<uint8_t> boundary_;
+  gil::mat_cview<gil::vec3f> g_;
+  gil::mat_cview<gil::vec3f> f_;
+
+  size_t f_step_;
+  size_t g_step_;
+  size_t bound_step_;
+public:
+  ParallelGuidanceMixedAvg(const gil::mat_cview<gil::vec3f> f, const gil::mat_cview<gil::vec3f> g,
+    const gil::mat_cview<uint8_t> mask, const gil::mat_cview<uint8_t> boundary,
+    gil::mat_view<gil::vec3f> guidance)
+    : mask_(mask), boundary_(boundary), g_(g), f_(f), guidance_(guidance),
+      f_step_(f_.stride()), g_step_(g_.stride()), bound_step_(boundary_.stride())
+      {}
+
+  void operator() (const blocked_range<size_t>& range) const {
+    for (size_t i = range.begin(); i != range.end(); ++i) {
+      auto mask_it = mask_.row_cbegin(i)+1;
+      auto bound_it = boundary_.row_cbegin(i)+1;
+      auto f_it = f_.row_cbegin(i)+1;
+      auto g_it = g_.row_cbegin(i)+1;
+      auto guidance_it = guidance_.row_begin(i)+1;
+      for (size_t j = 1; j < mask_.cols()-1; ++j, ++mask_it, ++bound_it, ++f_it, ++g_it, ++guidance_it) {
+        gil::vec3f temp({0.0f, 0.0f, 0.0f}); //for better quicker accesses
+        if (*mask_it >= 128) { // if the current pixel is in the mask
+          //vector containing the 2 potential values of v for each 4 neighboors
+          // First dimension tells if f* or g is used, second to tell which neighboor
+          gil::vec3f v[2][4] = {{*g_it - g_it[-1],
+                           *g_it - g_it[1],
+                           *g_it - g_it[-g_step_],
+                           *g_it - g_it[g_step_]},
+                          {*f_it - f_it[-1],
+                           *f_it - f_it[1],
+                           *f_it - f_it[-f_step_],
+                           *f_it - f_it[f_step_]}};
+          for (int k = 0; k < 4; ++k) { // for each neighboor
+            //Use average of gradient in both f* and g
+            temp += 0.5 * (v[0][k] + v[1][k]);
+          }
+        }
+
+        // 1st part of the right side of the equation, in the form of adding f* to
+        // the 4 neighboors of a boundary pixel
+        if (bound_it[-1] == 255) {
+          temp += f_it[-1];
+        }
+        if (bound_it[1] == 255) {
+          temp += f_it[1];
+        }
+        if (bound_it[-bound_step_] == 255) {
+          temp += f_it[-f_step_];
+        }
+        if (bound_it[bound_step_] == 255) {
+          temp += f_it[f_step_];
+        }
+
+        *guidance_it += temp;
+      }
+    }
+  }
+};
+/**
+ * Calculates the guidance field composed of the |boundary| in destination image |f|
+ * and the vector field corresponding to the |mask|'s area in |g|.
+ * This implementation uses mixed_gradients instead of g_p - g_q, which means that
+ * we pick the max between the gradient in source and in destination
+ */
+gil::mat<gil::vec3f> tbb_make_guidance_mixed_gradient_avg(gil::mat_cview<gil::vec3f> f,
+                                    gil::mat_cview<gil::vec3f> g,
+                                    gil::mat_cview<uint8_t> mask,
+                                    gil::mat_cview<uint8_t> boundary) {
+  assert(f.size() == mask.size());
+  assert(g.size() == mask.size());
+  assert(boundary.size() == mask.size());
+  gil::mat<gil::vec3f> dst(f.size());
+  ParallelGuidanceMixedAvg para_guide(f, g, mask, boundary, dst);
+  parallel_for(blocked_range<size_t>(0, mask.rows()), para_guide);
+  return dst;
+}
+
+/**
  * Class used by tbb to apply the parallel_for calculating the Jacobi iteration
  */
 class ParallelJacobi {
