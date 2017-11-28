@@ -18,8 +18,8 @@
 #include "cl/program.hpp"
 #include "cl/kernel.hpp"
 
-const bool USE_MIXING_GRADIENT = true;
-const bool MIXING_GRADIENT_USE_AVG = true;
+enum class GradientMethod {BASE, MAX_MIXING, AVG_MIXING};
+const GradientMethod METHOD = GradientMethod::AVG_MIXING;
 
 /**
  * Finds the full path of |filename| in the working directory.
@@ -93,10 +93,21 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
   // Do note that we do not reuse this notation.
 
   // calculate the right side of the equation, see above. Constant across solving
-  auto b = (USE_MIXING_GRADIENT ? (MIXING_GRADIENT_USE_AVG ?
-                make_guidance_mixed_gradient_avg(dst, src, mask, make_boundary(mask))
-                : make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask)))
-              : make_guidance(dst, src, mask, make_boundary(mask)));
+  gil::mat<gil::vec3f> b;
+  switch (METHOD) {
+    default:
+    case GradientMethod::BASE:
+      b = make_guidance(dst, src, mask, make_boundary(mask));
+      break;
+
+    case GradientMethod::MAX_MIXING:
+      b = make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask));
+      break;
+
+    case GradientMethod::AVG_MIXING:
+      b = make_guidance_mixed_gradient_avg(dst, src, mask, make_boundary(mask));
+      break;
+  }
   apply_mask(mask, b); // select the part corresponding to the mask's region
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
@@ -135,10 +146,21 @@ void poisson_blending_tbb(gil::mat_cview<uint8_t> mask,
   // Do note that we do not reuse this notation.
 
   // calculate the right side of the equation, see above. Constant across solving
-  auto b = (USE_MIXING_GRADIENT ? (MIXING_GRADIENT_USE_AVG ?
-                tbb_make_guidance_mixed_gradient_avg(dst, src, mask, tbb_make_boundary(mask))
-                : tbb_make_guidance_mixed_gradient(dst, src, mask, tbb_make_boundary(mask)))
-              : tbb_make_guidance(dst, src, mask, tbb_make_boundary(mask)));
+  gil::mat<gil::vec3f> b;
+  switch (METHOD) {
+    default:
+    case GradientMethod::BASE:
+      b = tbb_make_guidance(dst, src, mask, make_boundary(mask));
+      break;
+
+    case GradientMethod::MAX_MIXING:
+      b = tbb_make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask));
+      break;
+
+    case GradientMethod::AVG_MIXING:
+      b = tbb_make_guidance_mixed_gradient_avg(dst, src, mask, make_boundary(mask));
+      break;
+  }
   tbb_apply_mask(mask, b); // select the part corresponding to the mask's region
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
@@ -254,10 +276,22 @@ class poisson_blending_cl {
 
     // Initialise cl_guidance by calculating the right side of the poisson equation.
     // We save the event of that call's end in e1.
-    auto e1 = cl::invoke_kernel(USE_MIXING_GRADIENT ? (MIXING_GRADIENT_USE_AVG ?
-          make_guidance_mixed_gradient_avg_
-          : make_guidance_mixed_gradient_)
-        : make_guidance_,
+    cl::kernel b;
+    switch (METHOD) {
+      default:
+      case GradientMethod::BASE:
+        b = make_guidance_;
+        break;
+
+      case GradientMethod::MAX_MIXING:
+        b = make_guidance_mixed_gradient_;
+        break;
+
+      case GradientMethod::AVG_MIXING:
+        b = make_guidance_mixed_gradient_avg_;
+        break;
+    }
+    auto e1 = cl::invoke_kernel(b,
       {mask.cols(), mask.rows()},
       std::make_tuple(cl_f, cl_g, cl_mask, cl_boundary, cl_guidance))
       (ctx_.default_queue(), {});

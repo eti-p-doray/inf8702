@@ -34,6 +34,8 @@ class mat_view {
   using row_iterator = T*;
   using row_const_iterator = std::add_const_t<T>*;
 
+  mat_view() = default;
+
   mat_view(cv::Mat that)
       : rows_(that.rows),
         cols_(that.cols),
@@ -53,7 +55,7 @@ class mat_view {
         cols_(that.cols()),
         stride_(that.stride()),
         data_(that.data()) {}
-  
+
   template <class U>
   mat_view& operator=(mat_view<U> that) {
     assert(size() == that.size());
@@ -66,19 +68,19 @@ class mat_view {
     apply(std::bind(acier::identity(), value));
     return *this;
   }
-  
+
   operator cv::Mat() const {
     return cv::Mat(int(rows()), int(cols()), cv_channel<T>::value,
                    reinterpret_cast<void*>(data()), pitch());
   }
-  
+
   vec2<size_t> size() const { return {rows(), cols()}; }
   size_t rows() const { return rows_; }
   size_t cols() const { return cols_; }
   size_t total() const { return rows_ * cols_; }
   size_t stride() const { return stride_; }
   size_t pitch() const { return stride() * sizeof(T); }
-  
+
   mat_view operator[](gil::vec4<size_t> frame) const {
     return {{frame[2], frame[3]}, stride(), row_begin(frame[0]) + frame[1]};
   }
@@ -87,9 +89,9 @@ class mat_view {
   row_iterator row_end(size_t row) const { return data_ + stride_ * row + cols_; }
   row_const_iterator row_cbegin(size_t row) const { return data_ + stride_ * row; }
   row_const_iterator row_cend(size_t row) const { return data_ + stride_ * row + cols_; }
-  
+
   T* data() const { return data_; }
-  
+
   template <class F>
   mat_view& apply(const F& fcn) {
     using namespace std::placeholders;
@@ -98,16 +100,16 @@ class mat_view {
     }
     return *this;
   }
-  
+
   void swap(mat_view& other) {
     std::swap(rows_, other.rows_);
     std::swap(cols_, other.cols_);
     std::swap(stride_, other.stride_);
     std::swap(data_, other.data_);
   }
-  
+
   explicit operator bool() const { return data_ != nullptr; }
-  
+
   friend bool operator == (const mat_view& m, std::nullptr_t) { return !bool(m); }
   friend bool operator == (std::nullptr_t, const mat_view& m) { return !bool(m); }
   friend bool operator != (const mat_view& m, std::nullptr_t) { return bool(m); }
@@ -120,7 +122,7 @@ class mat_view {
     stride_ = 0;
     data_ = nullptr;
   }
-  
+
   size_t rows_ = 0;
   size_t cols_ = 0;
   size_t stride_ = 0;
@@ -184,32 +186,33 @@ class mat : public mat_view<T>,
   template <class U>
   mat(const mat<U>& that, const Alloc& alloc = Alloc())
       : mat(gil::mat_cview<U>(that), alloc) {}
-  
+
   mat& operator=(const mat& that);
   mat& operator=(mat&& that) {
     mat_view<T>::operator=(that);
-    that.reset();
+    that.mat_view<T>::reset();
+    return *this;
   }
-  
+
   ~mat() {
     destroy();
   }
-  
+
   mat& operator=(const T& value) {
     this->apply(std::bind(acier::identity(), value));
     return *this;
   }
-  
+
   row_iterator row_begin(size_t row) { return this->data() + this->stride() * row; }
   row_iterator row_end(size_t row) { return this->data() + this->stride() * row + this->cols(); }
   row_const_iterator row_begin(size_t row) const { return this->data() + this->stride() * row; }
   row_const_iterator row_end(size_t row) const { return this->data() + this->stride() * row + this->cols(); }
-  
+
   void swap(mat& other) {
     mat_view<T>::swap(other);
     std::swap(get_alloc(), other.get_alloc());
   }
-  
+
   void reset() {
     if (*this == nullptr) return;
     destroy();
@@ -218,9 +221,10 @@ class mat : public mat_view<T>,
 
  private:
   void destroy() {
+    if (*this == nullptr)return;
     std::allocator_traits<Alloc>::deallocate(get_alloc(), this->data(), this->total());
   }
-  
+
   Alloc& get_alloc() { return acier::compressed_member<Alloc>::get(); }
 };
 
