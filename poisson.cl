@@ -98,19 +98,22 @@ __kernel void make_guidance_mixed_gradient(__read_only image2d_t f,
     const float4 f_up_diff = f_mid - f_up;
 
     // For all 4 neighboors, add its value in the image (f or g) with the highest distance to mid
-    if (length(g_left_diff) > length(f_left_diff))
+    // NB: we use dot product with itself, since it gives square distance and if
+    //     square distance of a vector a is higher than another vector b's, it
+    //     that distance of a is higher than the distance of b.
+    if (dot(g_left_diff, g_left_diff) > dot(f_left_diff, f_left_diff))
       res += g_left_diff;
     else
       res += f_left_diff;
-    if (length(g_right_diff) > length(f_right_diff))
+    if (dot(g_right_diff, g_right_diff) > dot(f_right_diff, f_right_diff))
       res += g_right_diff;
     else
       res += f_right_diff;
-    if (length(g_down_diff) > length(f_down_diff))
+    if (dot(g_down_diff, g_down_diff) > dot(f_down_diff, f_down_diff))
       res += g_down_diff;
     else
       res += f_down_diff;
-    if (length(g_up_diff) > length(f_up_diff))
+    if (dot(g_up_diff, g_up_diff) > dot(f_up_diff, f_up_diff))
       res += g_up_diff;
     else
       res += f_up_diff;
