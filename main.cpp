@@ -36,7 +36,7 @@ boost::filesystem::path find_file(const std::string& filename) {
  * apply poisson blending. Returns a vector with the 4 extremums of the frame.
  */
 gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
-  gil::vec4<size_t> frame = {-1, -1, 0, 0};
+  gil::vec4<size_t> frame = {size_t(-1), size_t(-1), 0, 0};
   for (size_t i = 0; i < mask.rows(); ++i) {
     auto elem_it = mask.row_begin(i);
     for (size_t j = 0; j < mask.cols(); ++j, ++elem_it) {
@@ -73,7 +73,7 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
  * described by applying |mask|). The result of the blending is put in the
  * output parameter |result|.
  */
- void poisson_blending_serial(gil::mat_cview<uint8_t> mask,
+void poisson_blending_serial(gil::mat_cview<uint8_t> mask,
                       gil::mat_cview<gil::vec3f> src,
                       gil::mat_cview<gil::vec3f> dst,
                       gil::mat_view<gil::vec3f> result,
@@ -313,9 +313,9 @@ int main(int argc, const char *argv[]) {
 
   // Load images
   gil::mat<gil::vec3f> dst(gil::mat_view<gil::vec3b>(
-      cv::imread(argv[1], CV_LOAD_IMAGE_COLOR)));
+      cv::imread(argv[1])));
   gil::mat<gil::vec3f> src(gil::mat_view<gil::vec3b>(
-      cv::imread(argv[2], CV_LOAD_IMAGE_COLOR)));
+      cv::imread(argv[2])));
   gil::mat<uint8_t> mask(gil::mat_view<gil::vec3b>(cv::imread(argv[3])));
   GradientMethod method = static_cast<GradientMethod>(atoi(argv[4]));
   
