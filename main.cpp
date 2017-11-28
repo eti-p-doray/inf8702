@@ -135,8 +135,10 @@ void poisson_blending_tbb(gil::mat_cview<uint8_t> mask,
   // Do note that we do not reuse this notation.
 
   // calculate the right side of the equation, see above. Constant across solving
-  auto b = (USE_MIXING_GRADIENT ? tbb_make_guidance_mixed_gradient(dst, src, mask, tbb_make_boundary(mask))
-            : tbb_make_guidance(dst, src, mask, tbb_make_boundary(mask)));
+  auto b = (USE_MIXING_GRADIENT ? (MIXING_GRADIENT_USE_AVG ?
+                tbb_make_guidance_mixed_gradient_avg(dst, src, mask, tbb_make_boundary(mask))
+                : tbb_make_guidance_mixed_gradient(dst, src, mask, tbb_make_boundary(mask)))
+              : tbb_make_guidance(dst, src, mask, tbb_make_boundary(mask)));
   tbb_apply_mask(mask, b); // select the part corresponding to the mask's region
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
