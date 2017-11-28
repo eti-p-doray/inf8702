@@ -123,6 +123,7 @@ class poisson_blending_cl {
 
     make_boundary_ = cl::kernel(program_, "make_boundary");
     make_guidance_ = cl::kernel(program_, "make_guidance");
+    make_guidance_mixed_gradient_ = cl::kernel(program_, "make_guidance_mixed_gradient");
     jacobi_iteration_ = cl::kernel(program_, "jacobi_iteration");
     apply_mask_ = cl::kernel(program_, "apply_mask");
   }
@@ -203,7 +204,7 @@ class poisson_blending_cl {
 
     // Initialise cl_guidance by calculating the right side of the poisson equation.
     // We save the event of that call's end in e1.
-    auto e1 = cl::invoke_kernel(make_guidance_,
+    auto e1 = cl::invoke_kernel(make_guidance_mixed_gradient_,
       {mask.cols(), mask.rows()},
       std::make_tuple(cl_f, cl_g, cl_mask, cl_boundary, cl_guidance))
       (ctx_.default_queue(), {});
@@ -242,6 +243,7 @@ class poisson_blending_cl {
   cl::program program_;
   cl::kernel make_boundary_;
   cl::kernel make_guidance_;
+  cl::kernel make_guidance_mixed_gradient_;
   cl::kernel jacobi_iteration_;
   cl::kernel apply_mask_;
 };
