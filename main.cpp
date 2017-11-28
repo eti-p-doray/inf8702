@@ -18,6 +18,8 @@
 #include "cl/program.hpp"
 #include "cl/kernel.hpp"
 
+const bool USE_MIXING_GRADIENT = true;
+
 /**
  * Finds the full path of |filename| in the working directory.
  */
@@ -90,12 +92,13 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
   // Do note that we do not reuse this notation.
 
   // calculate the right side of the equation, see above. Constant across solving
-  auto b = make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask));
+  auto b = (USE_MIXING_GRADIENT ? make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask))
+                                : make_guidance(dst, src, mask, make_boundary(mask)));
   apply_mask(mask, b); // select the part corresponding to the mask's region
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
   copy(dst, mask, f); //applies the mask on destination and put the output as a copy in f.
-  for (int i = 0; i < 500; ++i) { // applying iterative method to have the value of f converge
+  for (int i = 0; i < 100; ++i) { // applying iterative method to have the value of f converge
     jacobi_iteration(f, b, mask, g); // Calculate the new value of g
     f.swap(g); // use g as an input for next iteration
   }
@@ -163,6 +166,7 @@ class poisson_blending_cl {
 
     make_boundary_ = cl::kernel(program_, "make_boundary");
     make_guidance_ = cl::kernel(program_, "make_guidance");
+    make_guidance_mixed_gradient_ = cl::kernel(program_, "make_guidance_mixed_gradient");
     jacobi_iteration_ = cl::kernel(program_, "jacobi_iteration");
     apply_mask_ = cl::kernel(program_, "apply_mask");
   }
@@ -243,7 +247,7 @@ class poisson_blending_cl {
 
     // Initialise cl_guidance by calculating the right side of the poisson equation.
     // We save the event of that call's end in e1.
-    auto e1 = cl::invoke_kernel(make_guidance_,
+    auto e1 = cl::invoke_kernel(USE_MIXING_GRADIENT ? make_guidance_mixed_gradient_ : make_guidance_,
       {mask.cols(), mask.rows()},
       std::make_tuple(cl_f, cl_g, cl_mask, cl_boundary, cl_guidance))
       (ctx_.default_queue(), {});
@@ -255,7 +259,7 @@ class poisson_blending_cl {
       (ctx_.default_queue(), {}).wait();
 
     // Using iterative method to calculate cl_g
-    for (size_t i = 0; i < 500; ++i) {
+    for (size_t i = 0; i < 100; ++i) {
       // Once e1 happened (guidance field complete for first iteration,
       // previous iteration for the 499 other iterations), calculate
       // a new value of intensity field based on the left side of the equation
@@ -282,6 +286,7 @@ class poisson_blending_cl {
   cl::program program_;
   cl::kernel make_boundary_;
   cl::kernel make_guidance_;
+  cl::kernel make_guidance_mixed_gradient_;
   cl::kernel jacobi_iteration_;
   cl::kernel apply_mask_;
 };
