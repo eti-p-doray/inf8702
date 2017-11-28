@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		73BE36B31FCD024B00EAB8F0 /* poisson_tbb.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 73BE36B11FCD024B00EAB8F0 /* poisson_tbb.cpp */; };
+		73BE36B71FCD166B00EAB8F0 /* libtbb.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 73BE36B41FCD166B00EAB8F0 /* libtbb.dylib */; };
+		73BE36B81FCD166B00EAB8F0 /* libtbbmalloc_proxy.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 73BE36B51FCD166B00EAB8F0 /* libtbbmalloc_proxy.dylib */; };
+		73BE36B91FCD166B00EAB8F0 /* libtbbmalloc.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 73BE36B61FCD166B00EAB8F0 /* libtbbmalloc.dylib */; };
 		8F1B50BB1FB65CC400111750 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F1B50BA1FB65CC400111750 /* OpenCL.framework */; };
 		8F3EC53D1FCB9F460008D26B /* blend.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F3EC53A1FCB9F460008D26B /* blend.cpp */; };
 		8F3EC53E1FCB9F460008D26B /* clone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F3EC53B1FCB9F460008D26B /* clone.cpp */; };
@@ -56,6 +59,9 @@
 /* Begin PBXFileReference section */
 		73BE36B11FCD024B00EAB8F0 /* poisson_tbb.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = poisson_tbb.cpp; sourceTree = SOURCE_ROOT; };
 		73BE36B21FCD024B00EAB8F0 /* poisson_tbb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = poisson_tbb.hpp; sourceTree = SOURCE_ROOT; };
+		73BE36B41FCD166B00EAB8F0 /* libtbb.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb.dylib; path = ../../../../../../../../usr/local/Cellar/tbb/2018_U1/lib/libtbb.dylib; sourceTree = "<group>"; };
+		73BE36B51FCD166B00EAB8F0 /* libtbbmalloc_proxy.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc_proxy.dylib; path = ../../../../../../../../usr/local/Cellar/tbb/2018_U1/lib/libtbbmalloc_proxy.dylib; sourceTree = "<group>"; };
+		73BE36B61FCD166B00EAB8F0 /* libtbbmalloc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc.dylib; path = ../../../../../../../../usr/local/Cellar/tbb/2018_U1/lib/libtbbmalloc.dylib; sourceTree = "<group>"; };
 		8F1B50BA1FB65CC400111750 /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = System/Library/Frameworks/OpenCL.framework; sourceTree = SDKROOT; };
 		8F3EC5331FCB9F1F0008D26B /* poisson-image-editing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "poisson-image-editing"; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F3EC53A1FCB9F460008D26B /* blend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = blend.cpp; path = src/blend.cpp; sourceTree = "<group>"; };
@@ -101,6 +107,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				73BE36B71FCD166B00EAB8F0 /* libtbb.dylib in Frameworks */,
+				73BE36B81FCD166B00EAB8F0 /* libtbbmalloc_proxy.dylib in Frameworks */,
+				73BE36B91FCD166B00EAB8F0 /* libtbbmalloc.dylib in Frameworks */,
 				8F90C74F1FC49113005CD387 /* libopencv_imgcodecs.3.3.1.dylib in Frameworks */,
 				8FAF6D161FB743BB00E97D6B /* libboost_iostreams.a in Frameworks */,
 				8FAF6D141FB741B700E97D6B /* libboost_system.a in Frameworks */,
@@ -164,6 +173,9 @@
 		8FD5DF1F1FAF56250006921E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				73BE36B41FCD166B00EAB8F0 /* libtbb.dylib */,
+				73BE36B51FCD166B00EAB8F0 /* libtbbmalloc_proxy.dylib */,
+				73BE36B61FCD166B00EAB8F0 /* libtbbmalloc.dylib */,
 				8FAF6D151FB743BB00E97D6B /* libboost_iostreams.a */,
 				8FAF6D131FB741B700E97D6B /* libboost_system.a */,
 				8FAF6D111FB7419900E97D6B /* libboost_filesystem-mt.a */,
