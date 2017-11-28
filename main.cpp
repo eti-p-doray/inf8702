@@ -133,13 +133,13 @@ void poisson_blending_tbb(gil::mat_cview<uint8_t> mask,
   tbb_apply_mask(mask, b); // select the part corresponding to the mask's region
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
-  tbb_copy(dst, mask, f); //applies the mask on destination and put the output as a copy in f.
+  copy(dst, mask, f); //applies the mask on destination and put the output as a copy in f.
   for (int i = 0; i < 500; ++i) { // applying iterative method to have the value of f converge
     tbb_jacobi_iteration(f, b, mask, g); // Calculate the new value of g
     f.swap(g); // use g as an input for next iteration
   }
   result = dst;
-  tbb_copy(f, mask, result); // put resulting f's area corresponding to mask in
+  copy(f, mask, result); // put resulting f's area corresponding to mask in
   // output |result| variable to return
 }
 
