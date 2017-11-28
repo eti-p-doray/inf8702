@@ -4,8 +4,14 @@
 
 #include "gil/mat.hpp"
 #include "gil/vec.hpp"
+#include "poisson.hpp"
 
 gil::mat<uint8_t> make_boundary(gil::mat_cview<uint8_t> mask);
+
+gil::mat<gil::vec3f> make_guidance(gil::mat_cview<gil::vec3f> f,
+                                   gil::mat_cview<gil::vec3f> g,
+                                   gil::mat_cview<uint8_t> mask,
+                                   GradientMethod method);
 
 gil::mat<gil::vec3f> make_guidance(gil::mat_cview<gil::vec3f> f,
                                    gil::mat_cview<gil::vec3f> g,

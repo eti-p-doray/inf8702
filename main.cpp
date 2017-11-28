@@ -18,8 +18,6 @@
 #include "cl/program.hpp"
 #include "cl/kernel.hpp"
 
-enum class GradientMethod {BASE, MAX_MIXING, AVG_MIXING};
-const GradientMethod METHOD = GradientMethod::AVG_MIXING;
 const size_t kNIter = 10000;
 
 /**
@@ -78,7 +76,8 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
  void poisson_blending_serial(gil::mat_cview<uint8_t> mask,
                       gil::mat_cview<gil::vec3f> src,
                       gil::mat_cview<gil::vec3f> dst,
-                      gil::mat_view<gil::vec3f> result) {
+                      gil::mat_view<gil::vec3f> result,
+                      GradientMethod method) {
 
   assert(src.size() == mask.size());
   assert(dst.size() == mask.size());
@@ -92,23 +91,7 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
   // and v_pq is the vector guidance field's value for the point between p and q,
   // ie. v_pq = g_p - g_q, with g_{something} being the source image's value at "something"
   // Do note that we do not reuse this notation.
-
-  // calculate the right side of the equation, see above. Constant across solving
-  gil::mat<gil::vec3f> b;
-  switch (METHOD) {
-    default:
-    case GradientMethod::BASE:
-      b = make_guidance(dst, src, mask, make_boundary(mask));
-      break;
-
-    case GradientMethod::MAX_MIXING:
-      b = make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask));
-      break;
-
-    case GradientMethod::AVG_MIXING:
-      b = make_guidance_mixed_gradient_avg(dst, src, mask, make_boundary(mask));
-      break;
-  }
+  gil::mat<gil::vec3f> b = make_guidance(dst, src, mask, method);
   apply_mask(mask, b); // select the part corresponding to the mask's region
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
@@ -129,9 +112,10 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
  * the output parameter |result|.
  */
 void poisson_blending_tbb(gil::mat_cview<uint8_t> mask,
-                             gil::mat_cview<gil::vec3f> src,
-                             gil::mat_cview<gil::vec3f> dst,
-                             gil::mat_view<gil::vec3f> result) {
+                          gil::mat_cview<gil::vec3f> src,
+                          gil::mat_cview<gil::vec3f> dst,
+                          gil::mat_view<gil::vec3f> result,
+                          GradientMethod method) {
 
   assert(src.size() == mask.size());
   assert(dst.size() == mask.size());
@@ -147,21 +131,7 @@ void poisson_blending_tbb(gil::mat_cview<uint8_t> mask,
   // Do note that we do not reuse this notation.
 
   // calculate the right side of the equation, see above. Constant across solving
-  gil::mat<gil::vec3f> b;
-  switch (METHOD) {
-    default:
-    case GradientMethod::BASE:
-      b = tbb_make_guidance(dst, src, mask, make_boundary(mask));
-      break;
-
-    case GradientMethod::MAX_MIXING:
-      b = tbb_make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask));
-      break;
-
-    case GradientMethod::AVG_MIXING:
-      b = tbb_make_guidance_mixed_gradient_avg(dst, src, mask, make_boundary(mask));
-      break;
-  }
+  gil::mat<gil::vec3f> b = tbb_make_guidance(dst, src, mask, method);
   tbb_apply_mask(mask, b); // select the part corresponding to the mask's region
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
@@ -210,7 +180,8 @@ class poisson_blending_cl {
   void operator()(gil::mat_cview<uint8_t> mask,
                          gil::mat_cview<gil::vec3f> src,
                          gil::mat_cview<gil::vec3f> dst,
-                         gil::mat_view<gil::vec3f> result) {
+                         gil::mat_view<gil::vec3f> result,
+                         GradientMethod method) {
 
     // Formula applied here : for all p in the destination domain (omega)
     // |N_p| * f_p - sum[all q in (N_p intersection omega)]{f_q} =
@@ -278,7 +249,7 @@ class poisson_blending_cl {
     // Initialise cl_guidance by calculating the right side of the poisson equation.
     // We save the event of that call's end in e1.
     cl::kernel b;
-    switch (METHOD) {
+    switch (method) {
       default:
       case GradientMethod::BASE:
         b = make_guidance_;
@@ -337,21 +308,23 @@ class poisson_blending_cl {
   cl::kernel apply_mask_;
 };
 
-int main() {
+int main(int argc, const char *argv[]) {
   using namespace std::placeholders;
 
   // Load images
-  gil::mat<uint8_t> mask(gil::mat_view<gil::vec3b>(cv::imread("mask.jpg")));
-  gil::mat<gil::vec3f> src(gil::mat_view<gil::vec3b>(
-      cv::imread("src.jpg", CV_LOAD_IMAGE_COLOR)));
   gil::mat<gil::vec3f> dst(gil::mat_view<gil::vec3b>(
-      cv::imread("dst.jpg", CV_LOAD_IMAGE_COLOR)));
+      cv::imread(argv[1], CV_LOAD_IMAGE_COLOR)));
+  gil::mat<gil::vec3f> src(gil::mat_view<gil::vec3b>(
+      cv::imread(argv[2], CV_LOAD_IMAGE_COLOR)));
+  gil::mat<uint8_t> mask(gil::mat_view<gil::vec3b>(cv::imread(argv[3])));
+  GradientMethod method = static_cast<GradientMethod>(atoi(argv[4]));
+  
   gil::mat<gil::vec3f> result = dst;
   auto frame = find_frame(mask); // limit the mask's size to the minimum needed
 
   // Time the serial calculation of serial poisson blending and save its output in a file
   auto start = std::chrono::high_resolution_clock::now();
-  poisson_blending_serial(mask[frame], src[frame], dst[frame], result[frame]);
+  poisson_blending_serial(mask[frame], src[frame], dst[frame], result[frame], method);
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> diff = end-start;
   std::cout << diff.count() << std::endl;
@@ -360,7 +333,7 @@ int main() {
   // Time the opencl calculation of serial poisson blending and save its output in a file
   poisson_blending_cl poisson_blending_cl;
   start = std::chrono::high_resolution_clock::now();
-  poisson_blending_cl(mask[frame], src[frame], dst[frame], result[frame]);
+  poisson_blending_cl(mask[frame], src[frame], dst[frame], result[frame], method);
   end = std::chrono::high_resolution_clock::now();
   diff = end-start;
   std::cout << diff.count() << std::endl;
@@ -368,7 +341,7 @@ int main() {
 
   // Time the tbb calculation of serial poisson blending and save its output in a file
   start = std::chrono::high_resolution_clock::now();
-  poisson_blending_tbb(mask[frame], src[frame], dst[frame], result[frame]);
+  poisson_blending_tbb(mask[frame], src[frame], dst[frame], result[frame], method);
   end = std::chrono::high_resolution_clock::now();
   diff = end-start;
   std::cout << diff.count() << std::endl;
