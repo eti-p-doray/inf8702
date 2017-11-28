@@ -10,6 +10,7 @@
 #include "gil/mat.hpp"
 #include "gil/vec.hpp"
 #include "poisson_serial.hpp"
+#include "poisson_tbb.hpp"
 
 #include "cl/device.hpp"
 #include "cl/context.hpp"
@@ -89,7 +90,7 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
   // Do note that we do not reuse this notation.
 
   // calculate the right side of the equation, see above. Constant across solving
-  auto b = make_guidance_mixed_gradient(dst, src, mask, make_boundary(mask));
+  auto b = make_guidance_mixed_gradient(dst, src, mask, tbb_make_boundary(mask));
   apply_mask(mask, b); // select the part corresponding to the mask's region
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration

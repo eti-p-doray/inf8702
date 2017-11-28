@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		73BE36B31FCD024B00EAB8F0 /* poisson_tbb.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 73BE36B11FCD024B00EAB8F0 /* poisson_tbb.cpp */; };
 		8F1B50BB1FB65CC400111750 /* OpenCL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8F1B50BA1FB65CC400111750 /* OpenCL.framework */; };
 		8F3EC53D1FCB9F460008D26B /* blend.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F3EC53A1FCB9F460008D26B /* blend.cpp */; };
 		8F3EC53E1FCB9F460008D26B /* clone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F3EC53B1FCB9F460008D26B /* clone.cpp */; };
@@ -53,6 +54,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		73BE36B11FCD024B00EAB8F0 /* poisson_tbb.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = poisson_tbb.cpp; sourceTree = SOURCE_ROOT; };
+		73BE36B21FCD024B00EAB8F0 /* poisson_tbb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = poisson_tbb.hpp; sourceTree = SOURCE_ROOT; };
 		8F1B50BA1FB65CC400111750 /* OpenCL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenCL.framework; path = System/Library/Frameworks/OpenCL.framework; sourceTree = SDKROOT; };
 		8F3EC5331FCB9F1F0008D26B /* poisson-image-editing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "poisson-image-editing"; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F3EC53A1FCB9F460008D26B /* blend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = blend.cpp; path = src/blend.cpp; sourceTree = "<group>"; };
@@ -144,6 +147,8 @@
 		8FD5DF141FAF54DF0006921E /* inf8702 */ = {
 			isa = PBXGroup;
 			children = (
+				73BE36B11FCD024B00EAB8F0 /* poisson_tbb.cpp */,
+				73BE36B21FCD024B00EAB8F0 /* poisson_tbb.hpp */,
 				8F90C74B1FC4745C005CD387 /* main.cpp */,
 				8F90C74C1FC4745C005CD387 /* poisson_serial.cpp */,
 				8F90C73F1FC4744D005CD387 /* command_queue.cpp */,
@@ -267,6 +272,7 @@
 			files = (
 				8F90C7481FC4744D005CD387 /* memory.cpp in Sources */,
 				8F90C7461FC4744D005CD387 /* event.cpp in Sources */,
+				73BE36B31FCD024B00EAB8F0 /* poisson_tbb.cpp in Sources */,
 				8F90C7471FC4744D005CD387 /* kernel.cpp in Sources */,
 				8F90C7451FC4744D005CD387 /* command_queue.cpp in Sources */,
 				8F90C74D1FC4745C005CD387 /* main.cpp in Sources */,
@@ -414,6 +420,7 @@
 					/usr/local/lib,
 					/usr/local/Cellar/opencv/3.3.1_1/lib,
 					/usr/local/Cellar/boost/1.65.1/lib,
+					/usr/local/Cellar/tbb/2018_U1/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				OTHER_CFLAGS = "-Wno-c++11-narrowing";
@@ -432,6 +439,7 @@
 					/usr/local/lib,
 					/usr/local/Cellar/opencv/3.3.1_1/lib,
 					/usr/local/Cellar/boost/1.65.1/lib,
+					/usr/local/Cellar/tbb/2018_U1/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				OTHER_CFLAGS = "-Wno-c++11-narrowing";
