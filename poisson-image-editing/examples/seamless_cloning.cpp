@@ -70,12 +70,20 @@ int main(int argc, char **argv)
     naiveClone(background, foreground, mask, offsetx, offsety, result);
     cv::imshow("Naive", result);
     cv::imwrite("naive.png", result);
-    
+  
+    auto start = std::chrono::high_resolution_clock::now();
     blend::seamlessClone(background, foreground, mask, offsetx, offsety, result, blend::CLONE_MIXED_GRADIENTS);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = end-start;
+    std::cout << diff.count() << std::endl;
     cv::imshow("Mixed Gradients", result);
     cv::imwrite("mixed-gradients.png", result);
-    
+  
+    start = std::chrono::high_resolution_clock::now();
     blend::seamlessClone(background, foreground, mask, offsetx, offsety, result, blend::CLONE_FOREGROUND_GRADIENTS);
+    end = std::chrono::high_resolution_clock::now();
+    diff = end-start;
+    std::cout << diff.count() << std::endl;
     cv::imshow("Foreground Gradients", result);
     cv::imwrite("foreground-gradients.png", result);
     

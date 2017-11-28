@@ -4,6 +4,9 @@ __constant sampler_t sampler =
     | CLK_ADDRESS_CLAMP_TO_EDGE
     | CLK_FILTER_NEAREST;
 
+// Computes contour of binary |mask| describing a shape (pixels >= 128 are
+// assumed to be part of shape) and writes result to |boundary|.
+// and writes result to |boundary|
 __kernel void make_boundary(__read_only image2d_t mask,
                             __write_only image2d_t boundary) {
   const int2 pos = {get_global_id(0), get_global_id(1)};
@@ -13,16 +16,19 @@ __kernel void make_boundary(__read_only image2d_t mask,
   const uint4 right = read_imageui(mask, sampler, (int2)(pos.x+1, pos.y));
   const uint4 down = read_imageui(mask, sampler, (int2)(pos.x, pos.y-1));
   const uint4 up = read_imageui(mask, sampler, (int2)(pos.x, pos.y+1));
+  //if neighboor pixel is part of the mask
   if ((left[0] >= 128 && mid[0] < 128) ||
       (mid[0] < 128 && right[0] >= 128) ||
       (down[0] >= 128 && mid[0] < 128) ||
       (mid[0] < 128 && up[0] >= 128)) {
-    write_imageui(boundary, (int2)(pos.x, pos.y), 255);
+    write_imageui(boundary, (int2)(pos.x, pos.y), 255); // add pixel to boundary
   } else {
     write_imageui(boundary, (int2)(pos.x, pos.y), uint4(0));
   }
 }
 
+// Computes the guidance field composed of the |boundary| in destination
+// image |f| and the vector field corresponding to the |mask|'s area in |g|
 __kernel void make_guidance(__read_only image2d_t f,
                             __read_only image2d_t g,
                             __read_only image2d_t mask,
@@ -34,6 +40,8 @@ __kernel void make_guidance(__read_only image2d_t f,
 
   const uint4 mask_mid = read_imageui(mask, sampler, (int2)(pos.x, pos.y));
 
+  // if the current pixel is in the mask, 2nd summation of the right side of the
+  //equation, we calculate the sum of all 4 vectors
   if (mask_mid[0] >= 128) {
     const float4 g_mid = read_imagef(g, sampler, (int2)(pos.x, pos.y));
     const float4 g_left = read_imagef(g, sampler, (int2)(pos.x-1, pos.y));
@@ -49,6 +57,8 @@ __kernel void make_guidance(__read_only image2d_t f,
   const uint4 bound_down = read_imageui(boundary, sampler, (int2)(pos.x, pos.y-1));
   const uint4 bound_up = read_imageui(boundary, sampler, (int2)(pos.x, pos.y+1));
 
+  // if a neighboor pixel is on the boundary, 1st part of the right side of the
+  // equation.
   if (bound_left[0] == 255)
     res += read_imagef(f, sampler, (int2)(pos.x-1, pos.y));
   if (bound_right[0] == 255)
@@ -149,6 +159,12 @@ __kernel void apply_mask(__read_only image2d_t mask,
   }
 }
 
+/**
+ * Function to execute one iteration of the iterative Jacobi method, applied to
+ * the poisson equation. It calculates the left side of the equation and finds
+ * a new |src| to use (put in |dst|), only applied at |mask|'s region and using
+ * |b| as the boundary corresponding to the right side of poisson's equation.
+ */
 __kernel void jacobi_iteration(__read_only image2d_t src,
                             __read_only image2d_t guidance,
                             __read_only image2d_t mask,
@@ -159,6 +175,12 @@ __kernel void jacobi_iteration(__read_only image2d_t src,
 
   const uint4 mask_mid = read_imageui(mask, sampler, (int2)(pos.x, pos.y));
 
+  // if part of the region targeted by the mask
+  // Find f_p's next value. This is basically the equation 7 presented
+  // in http://www.cs.virginia.edu/~connelly/class/2014/comp_photo/proj2/poisson.pdf
+  // except the 2nd term of the left side was added on both side, and both
+  // sides were devided by |Np| (4.0). Therefore, boundary + f's value for each
+  // neighboors, devided by 4
   if (mask_mid[0] >= 128) {
     const float4 b_mid = read_imagef(guidance, sampler, (int2)(pos.x, pos.y));
     const float4 src_left = read_imagef(src, sampler, (int2)(pos.x-1, pos.y));

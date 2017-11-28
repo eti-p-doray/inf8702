@@ -97,7 +97,7 @@ gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
   gil::mat<gil::vec3f> f(dst.size()); //Will contain the intensity of the image used as input to get f_p
   gil::mat<gil::vec3f> g(dst.size()); //Will contain the output of one iteration
   copy(dst, mask, f); //applies the mask on destination and put the output as a copy in f.
-  for (int i = 0; i < 500; ++i) { // applying iterative method to have the value of f converge
+  for (int i = 0; i < 100; ++i) { // applying iterative method to have the value of f converge
     jacobi_iteration(f, b, mask, g); // Calculate the new value of g
     f.swap(g); // use g as an input for next iteration
   }
@@ -219,7 +219,7 @@ class poisson_blending_cl {
       (ctx_.default_queue(), {}).wait();
 
     // Using iterative method to calculate cl_g
-    for (size_t i = 0; i < 500; ++i) {
+    for (size_t i = 0; i < 100; ++i) {
       // Once e1 happened (guidance field complete for first iteration,
       // previous iteration for the 499 other iterations), calculate
       // a new value of intensity field based on the left side of the equation
