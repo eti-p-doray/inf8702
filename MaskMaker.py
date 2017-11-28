@@ -33,7 +33,9 @@ class MaskMaker(object):
         self.brush_size = 10
         self.mask_opacity = 0.6
         #Image state
-        self.zoom_level = 1
+        self.zoom_level = 1.0
+        self.x_offset = 0
+        self.y_offset = 0
 
 
         ########
@@ -149,6 +151,8 @@ class MaskMaker(object):
 
         #Create resized source image to fit destination size
         self.zoom_level = 1.0
+        self.x_offset = 0
+        self.y_offset = 0
         self.resized_src = self.resize_src(self.src)
 
         #Create an image in memory for the mask and also initialise an ImageDraw to edit it
@@ -158,74 +162,66 @@ class MaskMaker(object):
         #Default view : show the source image
         self.see_src()
         self.current_view = '1'
-        self.instructions_label.configure(text="Left click and drag to add draw to the mask.\nRight click and drag to remove from the mask.\nMove source and mask with w,a,s,d(1px) or W,A,S,D(10px)\nUse 1,2,3 to view source, mask, destination")
+        self.instructions_label.configure(text="Left click and drag to add draw to the mask. Right click and drag to remove from the mask.\nMove source and mask with w,a,s,d(1px) or W,A,S,D(10px). Zoom with - and +\nUse 1,2,3 to view source, mask, destination")
 
         #Record left click drag to add a brush patch to the mask, and right click drag to remove it from the mask
         self.image_label.bind('<B1-Motion>', lambda e: self.color_patch(e, 255))
+        self.image_label.bind('<Button-1>', lambda e: self.color_patch(e, 255))
         self.image_label.bind('<B2-Motion>', lambda e: self.color_patch(e, 0))
+        self.image_label.bind('<Button-2>', lambda e: self.color_patch(e, 0))
+
 
     #Sets the src image to the same size as the destination image
-    def resize_src(self, src, zoom_level = 1.0):
+    def resize_src(self, src, zoom_level = 1.0, x_offset = 0, y_offset = 0):
         #We store the resized image in another variable to still be able to manipulate
         #the original one for offsets
-        new_size = (int(zoom_level * src.width), int(zoom_level * src.height))
-        resized_src = src.resize(new_size)
+        zoomed_size = (int(zoom_level * src.width), int(zoom_level * src.height))
+        resized_src = src.resize(zoomed_size)
 
-        should_crop = False
-        crop_size = [resized_src.width, resized_src.height]
+        #We build the minimal frame that contains both the entire source image
+        #and a rectangle of destination's size offseted. We can then paste the
+        #image in the frame and crop it to said rectangle of destination's size
+        frame_size_x = max(self.dst.width, resized_src.width, self.dst.width - x_offset, resized_src.width + x_offset)
+        frame_size_y = max(self.dst.height, resized_src.height, self.dst.height - y_offset, resized_src.height + y_offset)
+        output = Image.new(mode= resized_src.mode, size=(frame_size_x, frame_size_y), color=self.get_color(0))
+        output.paste(resized_src, (max(0,x_offset), max(0,y_offset)))
 
-        #We check if we need to crop horizontally to fit destination size
-        if self.dst.width < resized_src.width:
-            should_crop = True
-            crop_size[0] = self.dst.width
+        #If image too big for destination (whose dimension should be the minimum)
+        #Crop it, taking into account the possibility of negative offset
+        if (output.width > self.dst.width or output.height > self.dst.height):
+            crop_bounds = (max(0, -x_offset), max(0, -y_offset), max(0, -x_offset) + self.dst.width,
+                                                                 max(0, -y_offset) + self.dst.height)
+            output = output.crop(crop_bounds)
 
-        #We check if we need to crop or extend vertically to fit destination size
-        if self.dst.height < resized_src.height:
-            should_crop = True
-            crop_size[1] = self.dst.height
+        return output
 
-        #Crop image if required
-        if should_crop:
-            resized_src = resized_src.crop((0,0,crop_size[0],crop_size[1]))
-
-        should_extend = False
-        extend_size = [resized_src.width, resized_src.height]
-
-        #We check if we need to extend horizontally to fit destination size
-        if self.dst.width > resized_src.width:
-            should_extend = True
-            extend_size[0] = self.dst.width
-
-        #We check if we need to extend vertically to fit destination size
-        if self.dst.height > resized_src.height:
-            should_extend = True
-            extend_size[1] = self.dst.height
-
-        #Extend image if required
-        if should_extend:
-            temp = Image.new(mode= resized_src.mode, size=(extend_size[0], extend_size[1]), color=self.get_color(0))
-            temp.paste(resized_src)
-            resized_src = temp
-
-        return resized_src
-
-    #Offsets the resized source and the mask in a direction
+    #Offsets the source and the mask in a direction
     def offset_images(self, x_offset=0, y_offset=0):
-        if self.resized_src is None or self.mask is None:
+        if self.src is None or self.mask is None:
             return
 
-        self.resized_src = ImageChops.offset(self.resized_src,x_offset, y_offset)
-        self.mask = ImageChops.offset(self.mask, x_offset, y_offset)
+        #Calculate new cummulative offset and offset src accordingly
+        self.x_offset = self.x_offset + x_offset
+        self.y_offset = self.y_offset + y_offset
+        self.resized_src = self.resize_src(self.src, self.zoom_level, self.x_offset, self.y_offset)
+
+        #Offset the mask by the newly added offset
+        self.mask = self.resize_src(self.mask, 1, x_offset, y_offset)
         self.mask_draw = ImageDraw.Draw(self.mask) #update draw handle
 
         self.update_view()
 
+    #Zooms the source and the mask by a certain factor
     def zoom_images(self, zoom_factor):
         if self.src is None or self.mask is None:
             return
+
+        #Calculate new cummulative zoom and resize src accordingly
         self.zoom_level = self.zoom_level * zoom_factor
-        self.resized_src = self.resize_src(self.src, self.zoom_level)
-        self.mask = self.resize_src(self.mask, zoom_factor)
+        self.resized_src = self.resize_src(self.src, self.zoom_level,self.x_offset,self.y_offset)
+
+        #Zoom the mask by the newly added zoom factor
+        self.mask = self.resize_src(self.mask, zoom_factor,0,0)
         self.mask_draw = ImageDraw.Draw(self.mask) #update draw handle
 
         self.update_view()
@@ -311,8 +307,13 @@ class MaskMaker(object):
             self.offset_images(x_offset=10)
         elif event.char == '-':
             self.zoom_images(0.9)
+        elif event.char == '_':
+            self.zoom_images(0.9)
         elif event.char == '+':
             self.zoom_images(1/0.9)
+        elif event.char == '=':
+            self.zoom_images(1/0.9)
+
 
     #Colors a patch of the mask according to a motion event
     def color_patch(self, event, color):
