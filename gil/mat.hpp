@@ -170,7 +170,7 @@ class mat : public mat_view<T>,
     auto ptr = reinterpret_cast<const uint8_t*>(data);
     for (size_t i = 0; i < this->rows(); ++i) {
       d_first = std::copy_n(reinterpret_cast<const U*>(ptr), this->cols(), d_first);
-      data = data + pitch;
+      ptr = ptr + pitch;
     }
   }
   template <class U>
