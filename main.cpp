@@ -37,9 +37,9 @@ boost::filesystem::path find_file(const std::string& filename) {
  */
 gil::vec4<size_t> find_frame(gil::mat_cview<uint8_t> mask) {
   gil::vec4<size_t> frame = {size_t(-1), size_t(-1), 0, 0};
-  for (size_t i = 0; i < mask.rows(); ++i) {
-    auto elem_it = mask.row_begin(i);
-    for (size_t j = 0; j < mask.cols(); ++j, ++elem_it) {
+  for (size_t i = 2; i < mask.rows()-2; ++i) {
+    auto elem_it = mask.row_begin(i)+1;
+    for (size_t j = 2; j < mask.cols()-2; ++j, ++elem_it) {
       // If the pixel is white, hence should be in the frame
       if (*elem_it >= 128) {
         // If the pixel is to the left of the frame, set it as the new leftmost
@@ -308,6 +308,25 @@ class poisson_blending_cl {
   cl::kernel apply_mask_;
 };
 
+template <class F>
+double benchmark(const F& fcn, int nb_run = 3) {
+  double avg = 0;
+  for (int i = 0; i < nb_run; ++i) {
+    auto start = std::chrono::high_resolution_clock::now();
+    fcn();
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = end-start;
+    avg += diff.count();
+  }
+  avg /= nb_run;
+  return avg;
+}
+
+std::string make_filename(const std::string& base, GradientMethod method) {
+  return base + "-" + std::to_string(kNIter) + "-" +
+    std::to_string(static_cast<int>(method)) + ".jpg";
+}
+
 int main(int argc, const char *argv[]) {
   using namespace std::placeholders;
 
@@ -323,29 +342,23 @@ int main(int argc, const char *argv[]) {
   auto frame = find_frame(mask); // limit the mask's size to the minimum needed
 
   // Time the serial calculation of serial poisson blending and save its output in a file
-  auto start = std::chrono::high_resolution_clock::now();
-  poisson_blending_serial(mask[frame], src[frame], dst[frame], result[frame], method);
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> diff = end-start;
-  std::cout << diff.count() << std::endl;
-  cv::imwrite("result1.jpg", cv::Mat(result));
+  std::cout << benchmark([&](){
+    poisson_blending_serial(mask[frame], src[frame], dst[frame], result[frame], method);
+  }) << std::endl;
+  cv::imwrite(make_filename("result-serial", method), cv::Mat(result));
 
   // Time the opencl calculation of serial poisson blending and save its output in a file
   poisson_blending_cl poisson_blending_cl;
-  start = std::chrono::high_resolution_clock::now();
-  poisson_blending_cl(mask[frame], src[frame], dst[frame], result[frame], method);
-  end = std::chrono::high_resolution_clock::now();
-  diff = end-start;
-  std::cout << diff.count() << std::endl;
-  cv::imwrite("result2.jpg", cv::Mat(result));
+  std::cout << benchmark([&](){
+    poisson_blending_cl(mask[frame], src[frame], dst[frame], result[frame], method);
+  }) << std::endl;
+  cv::imwrite(make_filename("result-cl", method), cv::Mat(result));
 
   // Time the tbb calculation of serial poisson blending and save its output in a file
-  start = std::chrono::high_resolution_clock::now();
-  poisson_blending_tbb(mask[frame], src[frame], dst[frame], result[frame], method);
-  end = std::chrono::high_resolution_clock::now();
-  diff = end-start;
-  std::cout << diff.count() << std::endl;
-  cv::imwrite("result3.jpg", cv::Mat(result));
+  std::cout << benchmark([&](){
+    poisson_blending_tbb(mask[frame], src[frame], dst[frame], result[frame], method);
+  }) << std::endl;
+  cv::imwrite(make_filename("result-tbb", method), cv::Mat(result));
 
   return 0;
 }
