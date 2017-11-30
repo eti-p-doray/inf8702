@@ -20,6 +20,8 @@
 #include <blend/clone.h>
 #include <opencv2/opencv.hpp>
 
+#include <chrono>
+
 /**
  
  Naive image cloning by just copying the values from foreground over background
@@ -46,6 +48,20 @@ void naiveClone(cv::InputArray background_,
     
 }
 
+template <class F>
+double benchmark(const F& fcn, int nb_run = 3) {
+  double avg = 0;
+  for (int i = 0; i < nb_run; ++i) {
+    auto start = std::chrono::high_resolution_clock::now();
+    fcn();
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = end-start;
+    avg += diff.count();
+  }
+  avg /= nb_run;
+  return avg;
+}
+
 /**
  
  Main entry point.
@@ -53,7 +69,7 @@ void naiveClone(cv::InputArray background_,
  */
 int main(int argc, char **argv)
 {
-    if (argc != 6) {
+    if (argc != 7) {
         std::cerr << argv[0] << " background foreground mask offsetx offsety" << std::endl;
         return -1;
     }
@@ -70,28 +86,12 @@ int main(int argc, char **argv)
     naiveClone(background, foreground, mask, offsetx, offsety, result);
     cv::imshow("Naive", result);
     cv::imwrite("naive.png", result);
+    blend::CloneType method = static_cast<blend::CloneType>(atoi(argv[6]));
   
-    auto start = std::chrono::high_resolution_clock::now();
-    blend::seamlessClone(background, foreground, mask, offsetx, offsety, result, blend::CLONE_MIXED_GRADIENTS);
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> diff = end-start;
-    std::cout << diff.count() << std::endl;
-    cv::imshow("Mixed Gradients", result);
-    cv::imwrite("mixed-gradients.png", result);
-  
-    start = std::chrono::high_resolution_clock::now();
-    blend::seamlessClone(background, foreground, mask, offsetx, offsety, result, blend::CLONE_FOREGROUND_GRADIENTS);
-    end = std::chrono::high_resolution_clock::now();
-    diff = end-start;
-    std::cout << diff.count() << std::endl;
-    cv::imshow("Foreground Gradients", result);
-    cv::imwrite("foreground-gradients.png", result);
-    
-    blend::seamlessClone(background, foreground, mask, offsetx, offsety, result, blend::CLONE_AVERAGED_GRADIENTS);
-    cv::imshow("Averaged Gradients", result);
-    cv::imwrite("averaged-gradients.png", result);
-    
-    cv::waitKey();
+    std::cout << benchmark([&](){
+      blend::seamlessClone(background, foreground, mask, offsetx, offsety, result, method);
+    }) << std::endl;
+    cv::imwrite("result-ref.jpg", result);
     
     return 0;
 }
