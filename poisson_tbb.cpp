@@ -57,13 +57,13 @@ gil::mat<gil::vec3f> tbb_make_guidance(gil::mat_cview<gil::vec3f> f,
   switch (method) {
     default:
     case GradientMethod::BASE:
-      return tbb_make_guidance(f, g, mask, make_boundary(mask));
+      return tbb_make_guidance(f, g, mask, tbb_make_boundary(mask));
 
     case GradientMethod::MAX_MIXING:
-      return tbb_make_guidance_mixed_gradient(f, g, mask, make_boundary(mask));
+      return tbb_make_guidance_mixed_gradient(f, g, mask, tbb_make_boundary(mask));
 
     case GradientMethod::AVG_MIXING:
-      return tbb_make_guidance_mixed_gradient_avg(f, g, mask, make_boundary(mask));
+      return tbb_make_guidance_mixed_gradient_avg(f, g, mask, tbb_make_boundary(mask));
   }
 }
 
@@ -138,7 +138,7 @@ gil::mat<gil::vec3f> tbb_make_guidance(gil::mat_cview<gil::vec3f> f,
   assert(boundary.size() == mask.size());
   gil::mat<gil::vec3f> dst(f.size());
   ParallelGuidance para_guide(f, g, mask, boundary, dst);
-  parallel_for(blocked_range<size_t>(0, mask.rows()), para_guide);
+  parallel_for(blocked_range<size_t>(1, mask.rows()-1), para_guide);
   return dst;
 }
 
@@ -226,7 +226,7 @@ gil::mat<gil::vec3f> tbb_make_guidance_mixed_gradient(gil::mat_cview<gil::vec3f>
   assert(boundary.size() == mask.size());
   gil::mat<gil::vec3f> dst(f.size());
   ParallelGuidanceMixed para_guide(f, g, mask, boundary, dst);
-  parallel_for(blocked_range<size_t>(0, mask.rows()), para_guide);
+  parallel_for(blocked_range<size_t>(1, mask.rows()-1), para_guide);
   return dst;
 }
 
@@ -314,7 +314,7 @@ gil::mat<gil::vec3f> tbb_make_guidance_mixed_gradient_avg(gil::mat_cview<gil::ve
   assert(boundary.size() == mask.size());
   gil::mat<gil::vec3f> dst(f.size());
   ParallelGuidanceMixedAvg para_guide(f, g, mask, boundary, dst);
-  parallel_for(blocked_range<size_t>(0, mask.rows()), para_guide);
+  parallel_for(blocked_range<size_t>(1, mask.rows()-1), para_guide);
   return dst;
 }
 
