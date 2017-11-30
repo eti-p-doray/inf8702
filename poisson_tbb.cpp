@@ -21,9 +21,9 @@ public:
 
   void operator()(const blocked_range<size_t>& range) const {
     for (size_t i = range.begin(); i != range.end(); ++i ){
-      auto mask_it = mask_.row_cbegin(i);
-      auto bound_it = boundary_.row_begin(i);
-      for (size_t j = 0; j < mask_.cols()-1; ++j, ++mask_it, ++bound_it) {
+      auto mask_it = mask_.row_cbegin(i)+1;
+      auto bound_it = boundary_.row_begin(i)+1;
+      for (size_t j = 1; j < mask_.cols()-1; ++j, ++mask_it, ++bound_it) {
         if ((mask_it[-1] >= 128 && *mask_it < 128) ||
             (*mask_it < 128 && mask_it[1] >= 128) ||
             (mask_it[-mask_step_] >= 128 && *mask_it < 128) ||
