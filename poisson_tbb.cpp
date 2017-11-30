@@ -45,7 +45,7 @@ private:
 gil::mat<uint8_t> tbb_make_boundary(gil::mat_cview<uint8_t> mask) {
   gil::mat<uint8_t> boundary({mask.rows(), mask.cols()});
   ParallelBoundary para_bound(mask, boundary);
-  parallel_for(blocked_range<size_t>(0, mask.rows() - 1), para_bound);
+  parallel_for(blocked_range<size_t>(1, mask.rows() - 1), para_bound);
   return boundary;
 }
 
