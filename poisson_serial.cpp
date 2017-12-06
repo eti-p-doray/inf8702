@@ -31,6 +31,24 @@ gil::mat<uint8_t> make_boundary(gil::mat_cview<uint8_t> mask) {
   return boundary;
 }
 
+gil::mat<gil::vec3f> make_guidance(gil::mat_cview<gil::vec3f> f,
+                                   gil::mat_cview<gil::vec3f> g,
+                                   gil::mat_cview<uint8_t> mask,
+                                   GradientMethod method) {
+  // calculate the right side of the equation, see above. Constant across solving
+  switch (method) {
+    default:
+    case GradientMethod::BASE:
+      return make_guidance(f, g, mask, make_boundary(mask));
+
+    case GradientMethod::MAX_MIXING:
+      return make_guidance_mixed_gradient(f, g, mask, make_boundary(mask));
+
+    case GradientMethod::AVG_MIXING:
+      return make_guidance_mixed_gradient_avg(f, g, mask, make_boundary(mask));
+  }
+}
+
 /**
  * Calculates the guidance field composed of the |boundary| in destination image |f|
  * and the vector field corresponding to the |mask|'s area in |g|
